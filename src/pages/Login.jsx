@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WrenchIcon, User, Lock, ArrowRight, AlertCircle, Activity, ClipboardCheck, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, ArrowRight, AlertCircle, Activity, ClipboardCheck, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import bmpLogo from '../assets/bmp-icon.png';
 import './Login.css';
 
 export default function Login() {
@@ -50,8 +51,8 @@ export default function Login() {
       <div className="login-content">
         <div className="login-card">
           <div className="login-header">
-            <div className="brand-icon-container">
-              <WrenchIcon size={36} strokeWidth={2.5} />
+            <div className="brand-icon-container" style={{ background: 'transparent', boxShadow: 'none', transform: 'none' }}>
+              <img src={bmpLogo} alt="BMP Logo" style={{ width: '80px', height: '80px', borderRadius: '18px', objectFit: 'cover' }} />
             </div>
             <h1 className="login-title" style={{ fontSize: '1.5rem', lineHeight: '1.3' }}>BULK MAINTENANCE &<br/>PROJECT ENGINEERING</h1>
             <p className="login-subtitle">Sistem Manajemen Perawatan Unit</p>
