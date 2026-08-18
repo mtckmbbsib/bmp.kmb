@@ -224,11 +224,11 @@ export default function AddUser() {
       
       {/* Header */}
       <div style={{ flexShrink: 0, marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
           <Shield size={22} style={{ color: 'var(--color-yellow-primary)' }} />
           <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Manajemen Pengguna</h1>
         </div>
-        <p style={{ fontSize: '0.78rem', color: 'var(--color-silver)', margin: 0 }}>
+        <p style={{ fontSize: '0.78rem', color: 'var(--color-silver)', margin: 0, textAlign: 'center' }}>
           Kelola akun yang dapat mengakses sistem Bulk Maintenance & Project Engineering
         </p>
       </div>

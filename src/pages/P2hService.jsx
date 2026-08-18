@@ -999,9 +999,9 @@ export default function P2hService() {
       
       {/* ── HEADER HALAMAN P2H ── */}
       <div style={{ flexShrink: 0, marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem', width: '100%' }}>
+          <div style={{ width: '100%', textAlign: 'center' }}>
+            <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <ClipboardCheck size={22} style={{ color: 'var(--color-yellow-primary)' }} />
               {activeTab === 'create' ? 'Input P2H Harian' : 'P2H (Pemeriksaan Harian)'}
             </h1>
