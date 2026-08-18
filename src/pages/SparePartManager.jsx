@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Trash2, CheckCircle, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 export default function SparePartManager() {
   const { tab } = useParams();
@@ -653,7 +655,7 @@ export default function SparePartManager() {
                       
                       <div style={{ gridColumn: '1 / -1' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--color-silver)', marginBottom: '0.3rem', display: 'block' }}>Kategori (Jenis Unit - Merk) *</label>
-                        <select 
+                        <SearchableSelect 
                           className="input-field" 
                           required 
                           value={inFormData.isNewCategory ? 'NEW' : (inFormData.jenis_unit && inFormData.merk ? `${inFormData.jenis_unit} - ${inFormData.merk}` : '')}
@@ -675,7 +677,7 @@ export default function SparePartManager() {
                             <option key={i} value={u.label}>{u.label}</option>
                           ))}
                           <option value="NEW" style={{ fontWeight: 'bold', color: 'var(--color-yellow-primary)' }}>+ Tambah Jenis/Merk Baru</option>
-                        </select>
+                        </SearchableSelect>
                       </div>
 
                       {inFormData.isNewCategory && (

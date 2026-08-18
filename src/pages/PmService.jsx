@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // ── DUMMY SPIP DATABASE UNTUK POPULASI NO LAMBUNG ──
 const DUMMY_UNITS = [
@@ -1229,7 +1231,7 @@ export default function PmService() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Jenis Unit / Peralatan *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: !selectedJenis ? 'var(--color-yellow-primary)' : 'var(--color-border)', fontWeight: 'bold', background: 'var(--color-bg-main)' }}
                     value={selectedJenis}
@@ -1249,7 +1251,7 @@ export default function PmService() {
                         </option>
                       );
                     })}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 2. Jenis Service */}
@@ -1257,7 +1259,7 @@ export default function PmService() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Jenis Service (Tipe Service) *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: 'var(--color-yellow-primary)', fontWeight: 'bold', background: 'var(--color-bg-main)' }}
                     value={pmTier}
@@ -1291,7 +1293,7 @@ export default function PmService() {
                         <option value="PM 2000">PM 2000 (CODE D)</option>
                       </>
                     )}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 3. No Lambung */}
@@ -1299,7 +1301,7 @@ export default function PmService() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     No Lambung / Kode Peralatan *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: !selectedUnit ? 'var(--color-yellow-primary)' : 'var(--color-border)', background: 'var(--color-bg-main)' }}
                     value={selectedUnit?.noLambung || ''}
@@ -1311,7 +1313,7 @@ export default function PmService() {
                     {availableUnits.map(u => (
                       <option key={u.noLambung} value={u.noLambung}>{u.noLambung} — {u.merk}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 4. HM / KM */}
@@ -1378,7 +1380,7 @@ export default function PmService() {
                       readOnly 
                       title="Pelapor utama (Otomatis dari Akun Login)"
                     />
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ height: '38px', fontSize: '0.825rem', width: '100%', background: 'var(--color-bg-main)' }} 
                       value={additionalMekanik} 
@@ -1398,7 +1400,7 @@ export default function PmService() {
                             </option>
                           );
                         })}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               </div>
@@ -1620,7 +1622,7 @@ export default function PmService() {
                             {/* Satuan */}
                             <div>
                               {(isMobile || index === 0) && <label style={{ fontSize: '0.72rem', color: 'var(--color-silver)', marginBottom: '0.2rem', display: 'block' }}>Satuan</label>}
-                              <select 
+                              <SearchableSelect 
                                 className="input-field" 
                                 style={{ height: '34px', fontSize: '0.82rem', width: '100%' }}
                                 value={part.unit} 
@@ -1631,13 +1633,13 @@ export default function PmService() {
                                 <option value="Liter">Liter</option>
                                 <option value="Meter">Meter</option>
                                 <option value="Unit">Unit</option>
-                              </select>
+                              </SearchableSelect>
                             </div>
 
                             {/* Kondisi */}
                             <div>
                               {(isMobile || index === 0) && <label style={{ fontSize: '0.72rem', color: 'var(--color-silver)', marginBottom: '0.2rem', display: 'block' }}>Kondisi</label>}
-                              <select 
+                              <SearchableSelect 
                                 className="input-field" 
                                 style={{ height: '34px', fontSize: '0.82rem', width: '100%' }}
                                 value={part.statusPart} 
@@ -1646,7 +1648,7 @@ export default function PmService() {
                                 <option value="Baru">Baru</option>
                                 <option value="Rekondisi">Rekondisi</option>
                                 <option value="Bekas Layak">Bekas Layak</option>
-                              </select>
+                              </SearchableSelect>
                             </div>
 
                             {/* Delete button for Desktop */}

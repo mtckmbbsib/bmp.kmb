@@ -23,25 +23,25 @@ export default function MainLayout() {
     if (menu === 'p2h') {
       setIsP2hOpen(!isP2hOpen);
       if (!isP2hOpen) { 
-        setIsWoOpen(false); setIsWeeklyOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); 
+        setIsWoOpen(false); setIsWeeklyOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); setIsTimesheetOpen(false); 
         if (defaultPath) navigate(defaultPath);
       }
     } else if (menu === 'wo') {
       setIsWoOpen(!isWoOpen);
       if (!isWoOpen) { 
-        setIsP2hOpen(false); setIsWeeklyOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); 
+        setIsP2hOpen(false); setIsWeeklyOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); setIsTimesheetOpen(false); 
         if (defaultPath) navigate(defaultPath);
       }
     } else if (menu === 'weekly') {
       setIsWeeklyOpen(!isWeeklyOpen);
       if (!isWeeklyOpen) { 
-        setIsP2hOpen(false); setIsWoOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); 
+        setIsP2hOpen(false); setIsWoOpen(false); setIsPmOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); setIsTimesheetOpen(false); 
         if (defaultPath) navigate(defaultPath);
       }
     } else if (menu === 'pm') {
       setIsPmOpen(!isPmOpen);
       if (!isPmOpen) { 
-        setIsP2hOpen(false); setIsWoOpen(false); setIsWeeklyOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); 
+        setIsP2hOpen(false); setIsWoOpen(false); setIsWeeklyOpen(false); setIsReportOpen(false); setIsSparePartOpen(false); setIsTimesheetOpen(false); 
         if (defaultPath) navigate(defaultPath);
       }
     } else if (menu === 'report') {

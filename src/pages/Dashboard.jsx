@@ -9,6 +9,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ProblemUaWidget from '../components/ProblemUaWidget';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // ── DATA STORE UNTUK DASHBOARD ──
 const INITIAL_UNITS = [];
@@ -1421,7 +1423,7 @@ export default function Dashboard() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--color-silver)' }}>Laju Operasional (Daily Rate):</span>
-                  <select 
+                  <SearchableSelect 
                     className="input-field"
                     style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: '28px', backgroundColor: '#1a1c1e', borderColor: 'var(--color-border)' }}
                     value={simulatedDailyRateMultiplier}
@@ -1430,7 +1432,7 @@ export default function Dashboard() {
                     <option value={1.0}>Standar (Normal Shift)</option>
                     <option value={1.3}>Tinggi (High Demand 1.3x)</option>
                     <option value={0.7}>Rendah (Low Demand 0.7x)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -1615,7 +1617,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'rgba(0,0,0,0.3)', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
               <Activity size={16} style={{ color: 'var(--color-yellow-primary)' }} />
               <span style={{ fontSize: '0.75rem', color: 'var(--color-silver-light)' }}>Simulasi Jam Kerja Site:</span>
-              <select 
+              <SearchableSelect 
                 className="input-field" 
                 style={{ height: '28px', fontSize: '0.75rem', padding: '0 0.5rem' }}
                 value={simulatedDailyRateMultiplier}
@@ -1624,7 +1626,7 @@ export default function Dashboard() {
                 <option value={1.0}>Normal (100% Workload)</option>
                 <option value={1.25}>Tinggi (125% Workload)</option>
                 <option value={1.5}>Lembur / High-Shift (150% Workload)</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -1721,12 +1723,12 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
             <div className="input-group mb-0">
               <label style={{ fontSize: '0.75rem' }}>Filter Jenis Unit</label>
-              <select className="input-field" style={{ height: '34px', fontSize: '0.8rem' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <SearchableSelect className="input-field" style={{ height: '34px', fontSize: '0.8rem' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                 <option value="All">Semua Jenis Unit</option>
                 {Array.from(new Set(units.map(u => u.jenisUnit))).map(j => (
                   <option key={j} value={j}>{j}</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             <div className="input-group mb-0">
@@ -1834,7 +1836,7 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-silver)' }}>Unit:</span>
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: '28px', backgroundColor: '#1a1c1e', borderColor: 'var(--color-border)' }}
                       value={selectedUnitFilter}
@@ -1842,12 +1844,12 @@ export default function Dashboard() {
                     >
                       <option value="All">Semua Unit</option>
                       {uniqueUnitsForParts.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-silver)' }}>Sparepart:</span>
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: '28px', backgroundColor: '#1a1c1e', borderColor: 'var(--color-border)' }}
                       value={selectedPartFilter}
@@ -1855,7 +1857,7 @@ export default function Dashboard() {
                     >
                       <option value="All">Semua Sparepart</option>
                       {uniquePartNames.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               </div>

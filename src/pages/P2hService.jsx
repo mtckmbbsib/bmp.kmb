@@ -5,6 +5,8 @@ import {
   Truck, User, Calendar, Save, Trash2, Clock, ShieldAlert, FileText, Check, X, Hash
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // ── UNIFIED OPERATOR READINESS SECTION (Light Vehicle Standard) ──
 const STANDARD_OPERATOR_SECTION = {
@@ -1089,7 +1091,7 @@ export default function P2hService() {
                 {/* 1. Pilih Jenis Unit TERLEBIH DAHULU */}
                 <div className="input-group mb-0">
                   <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--color-yellow-primary)' }}>1. Pilih Jenis Unit / SPIP *</label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '36px', fontSize: '0.85rem', width: '100%', borderColor: !selectedJenisUnit ? 'var(--color-yellow-primary)' : 'var(--color-border)' }}
                     value={selectedJenisUnit}
@@ -1110,7 +1112,7 @@ export default function P2hService() {
                         </option>
                       );
                     })}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 2. No Lambung (Mengikuti data Tambah SPIP atau Manual) */}
@@ -1139,7 +1141,7 @@ export default function P2hService() {
                       )}
                     </div>
                   ) : (
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ height: '36px', fontSize: '0.85rem', width: '100%' }}
                       value={selectedNoLambung}
@@ -1151,7 +1153,7 @@ export default function P2hService() {
                         <option key={u.id} value={u.noLambung}>{u.noLambung} — {u.detail}</option>
                       ))}
                       <option value="manual">+ Ketik No Lambung Manual...</option>
-                    </select>
+                    </SearchableSelect>
                   )}
                 </div>
 
@@ -1200,7 +1202,7 @@ export default function P2hService() {
                 {/* 5. Shift */}
                 <div className="input-group mb-0">
                   <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Shift Kerja</label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '36px', fontSize: '0.85rem', width: '100%' }}
                     value={shift}
@@ -1209,7 +1211,7 @@ export default function P2hService() {
                   >
                     <option value="Shift 1 (Siang)">Shift 1 (Siang)</option>
                     <option value="Shift 2 (Malam)">Shift 2 (Malam)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 6. Tanggal P2H (Bisa di-backdate) */}
@@ -1241,7 +1243,7 @@ export default function P2hService() {
                 {/* 8. Pilih Leading Hand (Diketahui / Known By) */}
                 <div className="input-group mb-0">
                   <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--color-yellow-primary)' }}>8. Leading Hand (Verifikator) *</label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '36px', fontSize: '0.85rem', width: '100%', borderColor: !selectedLeadingHand ? 'var(--color-yellow-primary)' : 'var(--color-border)' }}
                     value={selectedLeadingHand}
@@ -1256,14 +1258,14 @@ export default function P2hService() {
                         {u.name || u.full_name} ({u.jabatan})
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 9. Pilih Mekanik / Leading Hand Maintenance (Jika Ada Temuan Kerusakan) */}
                 {hasBadItems && (
                   <div className="input-group mb-0">
                     <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#ff8a80' }}>9. Mekanik PIC (Ada Temuan Rusak) *</label>
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ height: '36px', fontSize: '0.85rem', width: '100%', borderColor: '#f44336', backgroundColor: 'rgba(244,67,54,0.08)' }}
                       value={selectedMechanic}
@@ -1282,7 +1284,7 @@ export default function P2hService() {
                           {u.name || u.full_name} ({u.jabatan})
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 )}
               </div>

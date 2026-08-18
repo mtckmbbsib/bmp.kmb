@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, List, PlusCircle, Save, Trash2, User, Gauge, Truck, Hash, CheckSquare, ClipboardList, AlertTriangle, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // ─── Checklist template ──────────────────────────────────────────────────────
 const CHECKLIST_TEMPLATE = {
@@ -863,7 +865,7 @@ export default function WeeklyService() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Jenis Unit *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: !selectedJenis ? 'var(--color-yellow-primary)' : 'var(--color-border)', fontWeight: 'bold', background: 'var(--color-bg-main)' }}
                     value={selectedJenis} 
@@ -883,7 +885,7 @@ export default function WeeklyService() {
                         </option>
                       );
                     })}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* 2. No Lambung */}
@@ -893,7 +895,7 @@ export default function WeeklyService() {
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <Truck size={15} style={{ position: 'absolute', left: '0.75rem', color: 'var(--color-silver-dark)' }} />
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ paddingLeft: '2.3rem', height: '38px', fontSize: '0.825rem', width: '100%', background: 'var(--color-bg-main)', borderColor: !selectedUnit ? 'var(--color-yellow-primary)' : 'var(--color-border)' }} 
                       value={selectedUnit?.noLambung || ''} 
@@ -903,7 +905,7 @@ export default function WeeklyService() {
                     >
                       <option value="">-- Pilih No Lambung Unit --</option>
                       {filteredUnits.map(u => <option key={u.id} value={u.noLambung}>{u.noLambung} — {u.merk}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
 
@@ -964,7 +966,7 @@ export default function WeeklyService() {
                       readOnly 
                       title="Pelapor utama (Otomatis dari Akun Login)"
                     />
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ height: '38px', fontSize: '0.825rem', width: '100%', background: 'var(--color-bg-main)' }} 
                       value={additionalMekanik} 
@@ -984,7 +986,7 @@ export default function WeeklyService() {
                             </option>
                           );
                         })}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               </div>
@@ -1188,17 +1190,17 @@ export default function WeeklyService() {
               
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.78rem' }}>Hari Service *</label>
-                <select className="input-field" style={{ height: '34px', fontSize: '0.825rem' }} value={scheduleDay} onChange={e => setScheduleDay(e.target.value)}>
+                <SearchableSelect className="input-field" style={{ height: '34px', fontSize: '0.825rem' }} value={scheduleDay} onChange={e => setScheduleDay(e.target.value)}>
                   {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* Jenis Unit (Didahulukan) */}
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.78rem' }}>Jenis Unit *</label>
-                <select 
+                <SearchableSelect 
                   className="input-field" 
                   style={{ height: '34px', fontSize: '0.825rem' }} 
                   value={scheduleJenis} 
@@ -1217,14 +1219,14 @@ export default function WeeklyService() {
                   {JENIS_UNIT_OPTIONS.map(j => (
                     <option key={j} value={j}>{j}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* No Lambung Unit (Tersaring Berdasarkan Jenis Unit) */}
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.78rem' }}>No Lambung Unit *</label>
                 {scheduleJenisUnits.length > 0 ? (
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '34px', fontSize: '0.825rem' }} 
                     value={scheduleUnit} 
@@ -1237,7 +1239,7 @@ export default function WeeklyService() {
                         {u.noLambung} {u.merk ? `(${u.merk})` : ''}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 ) : (
                   <input 
                     type="text" 
@@ -1254,10 +1256,10 @@ export default function WeeklyService() {
 
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.78rem' }}>Shift Kerjanya *</label>
-                <select className="input-field" style={{ height: '34px', fontSize: '0.825rem' }} value={scheduleShift} onChange={e => setScheduleShift(e.target.value)}>
+                <SearchableSelect className="input-field" style={{ height: '34px', fontSize: '0.825rem' }} value={scheduleShift} onChange={e => setScheduleShift(e.target.value)}>
                   <option value="Shift 1 (Siang)">Shift 1 (Siang)</option>
                   <option value="Shift 2 (Malam)">Shift 2 (Malam)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
 

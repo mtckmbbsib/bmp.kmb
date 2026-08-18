@@ -4,6 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, Calendar as CalendarIcon, Filter, Image as ImageIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 const PRODUCTIVE_ACTIVITIES = [
   "P5M",
@@ -328,7 +330,7 @@ export default function UaReport() {
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-bg-card)', padding: '0.25rem 0.5rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
             <Filter size={16} color="var(--color-silver)" />
-            <select 
+            <SearchableSelect 
               value={selectedMonth} 
               onChange={e => setSelectedMonth(Number(e.target.value))}
               style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
@@ -338,8 +340,8 @@ export default function UaReport() {
                   {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
                 </option>
               ))}
-            </select>
-            <select 
+            </SearchableSelect>
+            <SearchableSelect 
               value={selectedYear} 
               onChange={e => setSelectedYear(Number(e.target.value))}
               style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
@@ -348,7 +350,7 @@ export default function UaReport() {
                 const y = new Date().getFullYear() - 2 + i;
                 return <option key={y} value={y} style={{ color: '#000' }}>{y}</option>
               })}
-            </select>
+            </SearchableSelect>
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { 
-  ClipboardList, Calendar, User, Truck, PlusCircle, Trash2, 
+import SearchableSelect from '../components/SearchableSelect';
+import {   ClipboardList, Calendar, User, Truck, PlusCircle, Trash2, 
   Save, Clock, CheckCircle2, History 
 } from 'lucide-react';
 
@@ -199,10 +199,10 @@ export default function TimesheetOperator() {
               
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--color-yellow-primary)' }}>3. Pilih Unit / SPIP *</label>
-                <select className="input-field" required style={{ height: '36px', fontSize: '0.85rem', borderColor: !unitNumber ? 'var(--color-yellow-primary)' : 'var(--color-border)' }} value={unitNumber} onChange={e => setUnitNumber(e.target.value)}>
+                <SearchableSelect className="input-field" required style={{ height: '36px', fontSize: '0.85rem', borderColor: !unitNumber ? 'var(--color-yellow-primary)' : 'var(--color-border)' }} value={unitNumber} onChange={e => setUnitNumber(e.target.value)}>
                   <option value="">-- Pilih Unit --</option>
                   {units.map((u, i) => <option key={i} value={u.no_lambung}>{u.no_lambung}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -235,10 +235,10 @@ export default function TimesheetOperator() {
                   
                   <div style={{ flex: 1, minWidth: '200px' }}>
                     <label style={{ fontSize: '0.7rem', color: 'var(--color-silver)' }}>Aktivitas</label>
-                    <select required className="input-field" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={act.activity} onChange={e => handleActivityChange(act.id, 'activity', e.target.value)}>
+                    <SearchableSelect required className="input-field" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={act.activity} onChange={e => handleActivityChange(act.id, 'activity', e.target.value)}>
                       <option value="">-- Pilih Aktivitas --</option>
                       {ACTIVITIES.map((a, i) => <option key={i} value={a}>{a}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div style={{ flex: 1 }}>

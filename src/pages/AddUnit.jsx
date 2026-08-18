@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle, Truck, Hash, Settings, CheckCircle2, AlertCircle, Wrench, Tag, Gauge, List, Edit, Trash2, X, Save, Calendar, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 const CustomCombobox = ({ icon: Icon, placeholder, value, setValue, options, required }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -383,7 +385,7 @@ export default function AddUnit() {
                 <label>Kategori SPIP</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Settings size={20} style={{ position: 'absolute', left: '1rem', color: 'var(--color-silver-dark)' }} />
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ width: '100%', paddingLeft: '3rem' }}
                     value={kategori}
@@ -397,7 +399,7 @@ export default function AddUnit() {
                     <option value="Prasarana">Prasarana (Gedung / Bangunan)</option>
                     <option value="Instalasi">Instalasi (Listrik / Pipa / Sistem)</option>
                     <option value="Peralatan">Peralatan (Mesin / Tools / Genset)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
               
@@ -479,7 +481,7 @@ export default function AddUnit() {
                 <label>Status Awal</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Settings size={20} style={{ position: 'absolute', left: '1rem', color: 'var(--color-silver-dark)' }} />
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ width: '100%', paddingLeft: '3rem' }}
                     value={status}
@@ -488,7 +490,7 @@ export default function AddUnit() {
                   >
                     <option value="Unit Aktif">Unit Aktif (Ready)</option>
                     <option value="Dalam Perbaikan">Dalam Perbaikan (Breakdown)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -497,7 +499,7 @@ export default function AddUnit() {
                 <label>Next Service</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <div style={{ width: '100px', flexShrink: 0 }}>
-                    <select 
+                    <SearchableSelect 
                       className="input-field" 
                       style={{ width: '100%', paddingLeft: '0.5rem', appearance: 'auto', fontSize: '0.85rem' }}
                       value={nextServiceType}
@@ -508,7 +510,7 @@ export default function AddUnit() {
                     >
                       <option value="HM/KM">HM/KM</option>
                       <option value="Bulan">Bulan</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
                     <Wrench size={16} style={{ position: 'absolute', left: '0.75rem', color: 'var(--color-silver-dark)' }} />
@@ -711,16 +713,16 @@ export default function AddUnit() {
                           <input type="number" className="input-field" style={{ width: '90px', padding: '0.5rem' }} value={editForm.hmkm} onChange={(e) => setEditForm({...editForm, hmkm: e.target.value})} />
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <select className="input-field" style={{ padding: '0.5rem', width: '140px' }} value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})}>
+                          <SearchableSelect className="input-field" style={{ padding: '0.5rem', width: '140px' }} value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})}>
                             <option value="Unit Aktif">Unit Aktif</option>
                             <option value="Dalam Perbaikan">Dalam Perbaikan</option>
-                          </select>
+                          </SearchableSelect>
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <div style={{ fontSize: '0.8em', color: 'var(--color-silver)' }}>Service:</div>
                             <div style={{ display: 'flex', gap: '0.2rem' }}>
-                              <select 
+                              <SearchableSelect 
                                 className="input-field" 
                                 style={{ padding: '0.4rem', width: '85px', flexShrink: 0, appearance: 'auto', fontSize: '0.8em' }} 
                                 value={editForm.nextServiceType || 'HM/KM'} 
@@ -728,7 +730,7 @@ export default function AddUnit() {
                               >
                                 <option value="HM/KM">HM</option>
                                 <option value="Bulan">Bulan</option>
-                              </select>
+                              </SearchableSelect>
                               <input 
                                 type={editForm.nextServiceType === 'Bulan' ? "month" : "number"} 
                                 className="input-field" 

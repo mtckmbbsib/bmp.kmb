@@ -5,6 +5,8 @@ import {
   Calendar, Printer, AlertTriangle, CheckCircle2, FileText, Plus, X, Edit, Eye, PenTool, ClipboardList
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // Helper Angka Romawi untuk Bulan (1-12)
 const getRomanMonth = (monthNumber) => {
@@ -348,7 +350,7 @@ export default function WorkOrder() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Pilih Unit / No Lambung *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: !selectedNoLambung ? 'var(--color-yellow-primary)' : 'var(--color-border)', background: 'var(--color-bg-main)', fontWeight: 'bold' }}
                     value={selectedNoLambung}
@@ -361,7 +363,7 @@ export default function WorkOrder() {
                         {u.noLambung} {u.jenisUnit ? `(${u.jenisUnit})` : ''}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 {/* Preview Format Nomor WO Otomatis */}
                 <div className="input-group mb-0" style={{ width: '100%' }}>
@@ -378,7 +380,7 @@ export default function WorkOrder() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Kategori Pekerjaan *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', background: 'var(--color-bg-main)' }}
                     value={kategoriPekerjaan}
@@ -390,7 +392,7 @@ export default function WorkOrder() {
                     <option value="Weekly Service">Weekly Service</option>
                     <option value="Modifikasi Unit">Modifikasi Unit</option>
                     <option value="Lainnya">Lainnya</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* Tanggal Direncanakan */}
@@ -446,7 +448,7 @@ export default function WorkOrder() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', marginBottom: '1rem' }}>
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Tugaskan Kepada (Mekanik)</label>
-                <select 
+                <SearchableSelect 
                   className="input-field" 
                   style={{ height: '36px', fontSize: '0.85rem' }}
                   value={assignedTo}
@@ -457,12 +459,12 @@ export default function WorkOrder() {
                     <option key={m.id} value={m.name}>{m.name}</option>
                   ))}
                   <option value="Mekanik Site">Mekanik Site</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Status WO *</label>
-                <select 
+                <SearchableSelect 
                   className="input-field" 
                   style={{ height: '36px', fontSize: '0.85rem' }}
                   value={statusWo}
@@ -473,7 +475,7 @@ export default function WorkOrder() {
                   <option value="Waiting for Parts (Menunggu Sparepart)">Waiting for Parts (Menunggu Sparepart)</option>
                   <option value="Completed (Selesai)">Completed (Selesai)</option>
                   <option value="Canceled (Dibatalkan)">Canceled (Dibatalkan)</option>
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 

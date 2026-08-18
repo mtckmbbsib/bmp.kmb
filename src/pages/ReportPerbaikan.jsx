@@ -5,6 +5,8 @@ import {
   Calendar, Printer, AlertTriangle, CheckCircle2, FileText, Plus, X, Edit, Eye, PenTool, ClipboardList
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SearchableSelect from '../components/SearchableSelect';
+
 
 // Helper Angka Romawi untuk Bulan (1-12)
 const getRomanMonth = (monthNumber) => {
@@ -558,7 +560,7 @@ export default function ReportPerbaikan() {
                   <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--color-silver-light)', marginBottom: '0.25rem', display: 'block' }}>
                     Pilih Unit / No Lambung *
                   </label>
-                  <select 
+                  <SearchableSelect 
                     className="input-field" 
                     style={{ height: '38px', fontSize: '0.825rem', width: '100%', borderColor: !selectedNoLambung ? 'var(--color-yellow-primary)' : 'var(--color-border)', background: 'var(--color-bg-main)', fontWeight: 'bold' }}
                     value={selectedNoLambung}
@@ -571,7 +573,7 @@ export default function ReportPerbaikan() {
                         {u.noLambung} {u.jenisUnit ? `(${u.jenisUnit})` : ''}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* Nomor Urut Laporan */}
@@ -706,7 +708,7 @@ export default function ReportPerbaikan() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', marginBottom: '1rem' }}>
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Status Akhir Perbaikan *</label>
-                <select 
+                <SearchableSelect 
                   className="input-field" 
                   style={{ height: '36px', fontSize: '0.85rem' }}
                   value={statusPerbaikan}
@@ -715,7 +717,7 @@ export default function ReportPerbaikan() {
                   <option value="Selesai (Ready)">Selesai (Ready Operasional)</option>
                   <option value="Menunggu Sparepart">Menunggu Sparepart (Waiting Part)</option>
                   <option value="Dalam Perbaikan">Dalam Perbaikan (Breakdown)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="input-group mb-0">
@@ -818,7 +820,7 @@ export default function ReportPerbaikan() {
                       </div>
                       <div>
                         <label style={{ fontSize: '0.72rem', color: 'var(--color-silver)', marginBottom: '0.2rem', display: 'block' }}>Satuan</label>
-                        <select 
+                        <SearchableSelect 
                           className="input-field" 
                           style={{ height: '34px', fontSize: '0.82rem', width: '100%' }}
                           value={part.unit || 'Pcs'} 
@@ -829,7 +831,7 @@ export default function ReportPerbaikan() {
                           <option value="Liter">Liter</option>
                           <option value="Meter">Meter</option>
                           <option value="Unit">Unit</option>
-                        </select>
+                        </SearchableSelect>
                       </div>
                     </div>
 
@@ -893,7 +895,7 @@ export default function ReportPerbaikan() {
 
               <div className="input-group mb-0">
                 <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Mengetahui (Supervisor / Leading Hand ke atas)</label>
-                <select 
+                <SearchableSelect 
                   className="input-field" 
                   style={{ height: '36px', fontSize: '0.85rem' }}
                   value={supervisor}
@@ -908,7 +910,7 @@ export default function ReportPerbaikan() {
                       </option>
                     );
                   })}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
