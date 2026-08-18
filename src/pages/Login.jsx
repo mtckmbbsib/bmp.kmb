@@ -53,7 +53,7 @@ export default function Login() {
             <div className="brand-icon-container">
               <WrenchIcon size={36} strokeWidth={2.5} />
             </div>
-            <h1 className="login-title">UnitMaint</h1>
+            <h1 className="login-title" style={{ fontSize: '1.5rem', lineHeight: '1.3' }}>BULK MAINTENANCE &<br/>PROJECT ENGINEERING</h1>
             <p className="login-subtitle">Sistem Manajemen Perawatan Unit</p>
           </div>
           
@@ -130,7 +130,7 @@ export default function Login() {
         </div>
         
         <div className="info-footer">
-          &copy; {new Date().getFullYear()} UnitMaint. Seluruh hak cipta dilindungi.
+          &copy; {new Date().getFullYear()} Bulk Maintenance & Project Engineering. Seluruh hak cipta dilindungi.
         </div>
       </div>
 

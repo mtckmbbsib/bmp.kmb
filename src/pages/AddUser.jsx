@@ -215,7 +215,7 @@ export default function AddUser() {
           <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Manajemen Pengguna</h1>
         </div>
         <p style={{ fontSize: '0.78rem', color: 'var(--color-silver)', margin: 0 }}>
-          Kelola akun yang dapat mengakses sistem UnitMaint
+          Kelola akun yang dapat mengakses sistem Bulk Maintenance & Project Engineering
         </p>
       </div>
 

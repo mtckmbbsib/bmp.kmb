@@ -87,7 +87,7 @@ export default function MainLayout() {
         <div>
           <div className="sidebar-header">
             <WrenchIcon size={28} className="text-yellow" />
-            <span className="sidebar-title">UNITMAINT</span>
+            <span className="sidebar-title" style={{ fontSize: '0.85rem', lineHeight: '1.2', textAlign: 'left' }}>BULK MAINTENANCE &<br/>PROJECT ENGINEERING</span>
           </div>
 
           <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.5rem' }}>
