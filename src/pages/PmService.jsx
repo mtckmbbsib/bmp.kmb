@@ -606,7 +606,21 @@ export default function PmService() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.from('users').select('*').order('name', { ascending: true });
+      let query = supabase.from('users').select('*').neq('username', 'dummy').order('name', { ascending: true });
+      
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        const uSite = (parsed.site || parsed.lokasi || '').toLowerCase();
+        const uRole = (parsed.jabatan || parsed.role || '').toLowerCase();
+        
+        const isSuper = uRole.includes('admin') || uSite === 'balikpapan';
+        if (!isSuper && parsed.site) {
+          query = query.eq('site', parsed.site);
+        }
+      }
+
+      const { data, error } = await query;
       if (!error && data) {
         setUserOptions(data);
       }
