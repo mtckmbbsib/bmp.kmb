@@ -46,26 +46,34 @@ export default function SearchableSelect({ children, value, onChange, className,
     return options.filter(o => o.label && String(o.label).toLowerCase().includes(searchTerm.toLowerCase()));
   }, [options, searchTerm]);
 
+  const finalClassName = (className || '').replace(/\binput-field\b/g, '').trim();
+
   // Default Desktop Style
   const customStyles = {
     container: (base) => ({
       ...base,
-      width: '100%'
+      width: '100%',
+      pointerEvents: 'auto'
     }),
     control: (base, state) => ({
       ...base,
-      backgroundColor: 'rgba(30, 32, 35, 0.5)',
-      borderColor: state.isFocused ? 'var(--color-yellow-primary)' : 'var(--color-border)',
+      backgroundColor: state.isDisabled ? 'rgba(30, 32, 35, 0.3)' : 'rgba(30, 32, 35, 0.5)',
+      borderColor: state.isFocused ? 'var(--color-yellow-primary)' : (style?.borderColor || 'var(--color-border)'),
       minHeight: style?.height || '36px',
       height: style?.height || '36px',
       fontSize: style?.fontSize || '0.85rem',
       boxShadow: 'none',
       width: '100%',
+      opacity: state.isDisabled ? 0.6 : 1,
+      cursor: state.isDisabled ? 'not-allowed' : 'pointer',
       '&:hover': {
-        borderColor: 'var(--color-yellow-primary)'
+        borderColor: state.isDisabled ? (style?.borderColor || 'var(--color-border)') : 'var(--color-yellow-primary)'
       }
     }),
-    singleValue: (base) => ({ ...base, color: '#fff' }),
+    singleValue: (base, state) => ({ 
+      ...base, 
+      color: state.isDisabled ? 'var(--color-silver)' : '#fff' 
+    }),
     menu: (base) => ({ ...base, backgroundColor: 'var(--color-bg-card)', zIndex: 9999, border: '1px solid var(--color-border)' }),
     option: (base, state) => ({
       ...base,
@@ -86,7 +94,7 @@ export default function SearchableSelect({ children, value, onChange, className,
         options={options}
         styles={customStyles}
         isDisabled={disabled}
-        className={className}
+        className={finalClassName}
         isClearable
         placeholder={placeholder}
       />
@@ -99,19 +107,21 @@ export default function SearchableSelect({ children, value, onChange, className,
   return (
     <>
       <div 
-        className={className} 
+        className={finalClassName} 
         style={{ 
           ...style, 
           display: 'flex', 
           alignItems: 'center', 
-          backgroundColor: 'rgba(30, 32, 35, 0.5)',
-          border: '1px solid var(--color-border)',
+          backgroundColor: disabled ? 'rgba(30, 32, 35, 0.3)' : 'rgba(30, 32, 35, 0.5)',
+          border: '1px solid',
+          borderColor: style?.borderColor || 'var(--color-border)',
           borderRadius: '4px',
           padding: '0 8px',
           minHeight: style?.height || '36px',
           width: style?.width || '100%',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          color: selectedOption ? '#fff' : 'var(--color-silver)',
+          color: disabled ? 'var(--color-silver)' : (selectedOption ? '#fff' : 'var(--color-silver)'),
+          opacity: disabled ? 0.6 : 1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
