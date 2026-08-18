@@ -322,16 +322,20 @@ export default function AddUser() {
                 <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-silver)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
                   <Briefcase size={13} /> Jabatan / Role *
                 </label>
-                <select 
+                <input 
+                  list="jabatan-list"
                   className="input-field" 
                   style={{ height: '38px', fontSize: '0.875rem', width: '100%' }} 
                   value={jabatan} 
                   onChange={e => setJabatan(e.target.value)}
-                >
+                  placeholder="Ketik Jabatan jika tidak ada pada list..."
+                  required
+                />
+                <datalist id="jabatan-list">
                   {JABATAN_OPTIONS.map(j => (
-                    <option key={j} value={j}>{j}</option>
+                    <option key={j} value={j} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
             </div>
