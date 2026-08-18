@@ -48,6 +48,10 @@ export default function SearchableSelect({ children, value, onChange, className,
 
   // Default Desktop Style
   const customStyles = {
+    container: (base) => ({
+      ...base,
+      width: '100%'
+    }),
     control: (base, state) => ({
       ...base,
       backgroundColor: 'rgba(30, 32, 35, 0.5)',
@@ -56,6 +60,7 @@ export default function SearchableSelect({ children, value, onChange, className,
       height: style?.height || '36px',
       fontSize: style?.fontSize || '0.85rem',
       boxShadow: 'none',
+      width: '100%',
       '&:hover': {
         borderColor: 'var(--color-yellow-primary)'
       }
@@ -104,6 +109,7 @@ export default function SearchableSelect({ children, value, onChange, className,
           borderRadius: '4px',
           padding: '0 8px',
           minHeight: style?.height || '36px',
+          width: style?.width || '100%',
           cursor: disabled ? 'not-allowed' : 'pointer',
           color: selectedOption ? '#fff' : 'var(--color-silver)',
           overflow: 'hidden',
