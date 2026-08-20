@@ -18,25 +18,31 @@ import UaReport from './pages/UaReport';
 
 // Handle Hardware Back Button for Android
 const HardwareBackButtonHandler = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
   useEffect(() => {
-    const handleBackButton = async () => {
-      const isHome = location.pathname === '/dashboard' || location.pathname === '/login' || location.pathname === '/';
-      if (isHome) {
-        CapacitorApp.exitApp();
-      } else {
-        navigate(-1);
-      }
+    let listener = null;
+    
+    const setupListener = async () => {
+      listener = await CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        // Use window.location.pathname to always get the freshest path without re-registering
+        const currentPath = window.location.pathname;
+        const isHome = currentPath === '/dashboard' || currentPath === '/login' || currentPath === '/';
+        
+        if (isHome) {
+          CapacitorApp.exitApp();
+        } else {
+          window.history.back();
+        }
+      });
     };
 
-    const backButtonListener = CapacitorApp.addListener('backButton', handleBackButton);
+    setupListener();
 
     return () => {
-      backButtonListener.then(listener => listener.remove());
+      if (listener) {
+        listener.remove();
+      }
     };
-  }, [location, navigate]);
+  }, []);
 
   return null;
 };
