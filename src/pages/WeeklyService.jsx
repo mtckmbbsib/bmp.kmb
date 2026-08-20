@@ -453,11 +453,7 @@ export default function WeeklyService() {
   // Fetch data dari Supabase saat komponen dipasang
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      if (mobile && activeTab === 'schedule') {
-        navigate('/weekly-service/create');
-      }
+      setIsMobile(window.innerWidth <= 768);
     };
     window.addEventListener('resize', handleResize);
 
@@ -749,7 +745,8 @@ export default function WeeklyService() {
     setReportDate(new Date().toISOString().split('T')[0]);
     setAdditionalMekanik('');
     setChecklist({}); setRingkasan('');
-    navigate('/weekly-service/history');
+    window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Laporan telah terkirim!' }));
+    navigate('/dashboard');
   };
 
   const handleStatus = (id, status) => setChecklist(prev => ({

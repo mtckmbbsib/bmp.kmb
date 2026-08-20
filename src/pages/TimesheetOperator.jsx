@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
 import {   ClipboardList, Calendar, User, Truck, PlusCircle, Trash2, 
-  Save, Clock, CheckCircle2, History 
+  Save, Clock, CheckCircle2, History, ChevronDown, ChevronUp, X 
 } from 'lucide-react';
 
 const ACTIVITIES = [
@@ -28,8 +28,13 @@ const ACTIVITIES = [
   "Menunggu peledakan",
   "Jadwal pemeliharaan",
   "Istirahat / makan",
+  "HUJAN/PETIR",
+  "KALIBRASI",
+  "Stanby No Location",
+  "No Job",
   "Pencucian unit",
-  "Lain-lain"
+  "Lain-lain",
+  "Menunggu Feul"
 ];
 
 export default function TimesheetOperator() {
@@ -54,6 +59,7 @@ export default function TimesheetOperator() {
 
   const [submitting, setSubmitting] = useState(false);
   const [history, setHistory] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -112,9 +118,24 @@ export default function TimesheetOperator() {
       return;
     }
     
+    // Auto-fill until 17:00
+    let finalActivities = [...activities];
+    if (finalActivities.length > 0) {
+      const lastAct = finalActivities[finalActivities.length - 1];
+      if (lastAct.endTime && lastAct.endTime < '17:00') {
+        finalActivities.push({
+          id: Date.now() + 1,
+          startTime: lastAct.endTime,
+          endTime: '17:00',
+          activity: 'Stanby No Location',
+          remarks: 'Auto-fill sisa jam operasional'
+        });
+      }
+    }
+
     // Validasi activities
-    for (let i=0; i<activities.length; i++) {
-      const a = activities[i];
+    for (let i=0; i<finalActivities.length; i++) {
+      const a = finalActivities[i];
       if (!a.startTime || !a.endTime || !a.activity) {
         alert(`Mohon lengkapi Waktu dan Aktivitas pada baris ke-${i+1}.`);
         return;
@@ -135,7 +156,7 @@ export default function TimesheetOperator() {
       const reportId = reportData[0].id;
 
       // 2. Insert Activities
-      const actsToInsert = activities.map(a => ({
+      const actsToInsert = finalActivities.map(a => ({
         timesheet_id: reportId,
         start_time: a.startTime,
         end_time: a.endTime,
@@ -146,15 +167,15 @@ export default function TimesheetOperator() {
       const { error: actError } = await supabase.from('timesheet_activities').insert(actsToInsert);
       if (actError) throw actError;
 
-      alert("Laporan Time Sheet berhasil dikirim!");
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Laporan telah terkirim!' }));
       
       // Reset
       setActivities([{ id: Date.now(), startTime: '05:00', endTime: '06:00', activity: 'P5M', remarks: '' }]);
       setUnitNumber('');
-      navigate('/timesheet/history');
+      navigate('/dashboard');
 
     } catch (err) {
-      alert("Terjadi kesalahan saat menyimpan data.");
+      alert("Terjadi kesalahan saat menyimpan data: " + (err?.message || "Koneksi/Auth error"));
       console.error(err);
     }
     setSubmitting(false);
@@ -173,6 +194,57 @@ export default function TimesheetOperator() {
           </div>
         </div>
       </div>
+
+      {isMobile && (
+        <div style={{
+          display: 'flex',
+          background: 'rgba(22, 25, 29, 0.95)',
+          padding: '0.3rem',
+          borderRadius: '12px',
+          border: '1px solid var(--color-border)',
+          gap: '0.3rem',
+          marginBottom: '0.75rem',
+          overflowX: 'auto',
+          width: '100%'
+        }} className="hide-scrollbar">
+          <button 
+            onClick={() => navigate('/timesheet/create')} 
+            style={{
+              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+              background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
+              color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+              border: 'none', transition: 'all 0.2s', minWidth: '90px'
+            }}
+          >
+            Input
+          </button>
+          <button 
+            onClick={() => navigate('/timesheet/history')} 
+            style={{
+              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+              background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
+              color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+              border: 'none', transition: 'all 0.2s', minWidth: '90px'
+            }}
+          >
+            Riwayat
+          </button>
+          {!jabatan.includes('operator') && (
+            <button 
+              onClick={() => navigate('/timesheet/report')} 
+              style={{
+                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                background: activeTab === 'report' ? 'var(--color-yellow-primary)' : 'transparent',
+                color: activeTab === 'report' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                border: 'none', transition: 'all 0.2s', minWidth: '90px'
+              }}
+            >
+              Laporan
+            </button>
+          )}
+        </div>
+      )}
+
       {activeTab === 'create' && (
         <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '1rem' : '1.25rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%', animation: 'fadeIn 0.3s ease-out' }}>
@@ -287,35 +359,79 @@ export default function TimesheetOperator() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {history.map(report => (
-                <div key={report.id} className="glass-card" style={{ padding: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                <div key={report.id} className="glass-card" style={{ padding: '1rem', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setSelectedReport(report)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-yellow-primary)' }}>{report.unit_number}</h3>
+                      <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-yellow-primary)' }}>
+                        {report.unit_number}
+                      </h3>
                       <div style={{ fontSize: '0.8rem', color: 'var(--color-silver)' }}>{report.report_date} • {report.operator_name}</div>
                     </div>
                     <span style={{ padding: '0.2rem 0.5rem', background: 'rgba(76,175,80,0.1)', color: '#81c784', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
                       <CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Terkirim
                     </span>
                   </div>
-
-                  <div style={{ marginTop: '0.8rem' }}>
-                    <h4 style={{ fontSize: '0.8rem', color: 'var(--color-silver-light)', margin: '0 0 0.5rem 0' }}>Rincian Aktivitas:</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      {report.timesheet_activities?.map(act => (
-                        <div key={act.id} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', padding: '0.4rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
-                          <div style={{ color: '#ffd54f', fontWeight: 'bold', width: '85px', flexShrink: 0 }}>
-                            {act.start_time.substring(0,5)} - {act.end_time.substring(0,5)}
-                          </div>
-                          <div style={{ color: '#fff', flex: 1 }}>{act.activity}</div>
-                          {act.remarks && <div style={{ color: 'var(--color-silver)', fontStyle: 'italic', flex: 1 }}>{act.remarks}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal Popup Rincian Aktivitas */}
+      {selectedReport && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'fadeIn 0.2s ease-out'
+        }} onClick={() => setSelectedReport(null)}>
+          <div style={{
+            backgroundColor: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: 0, color: 'var(--color-yellow-primary)', fontSize: '1.1rem' }}>{selectedReport.unit_number}</h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-silver)' }}>{selectedReport.report_date} • {selectedReport.operator_name}</div>
+              </div>
+              <button onClick={() => setSelectedReport(null)} style={{ background: 'var(--color-border)', border: 'none', color: '#fff', borderRadius: '50%', padding: '0.4rem', display: 'flex', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '1.25rem', overflowY: 'auto' }}>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--color-silver-light)', margin: '0 0 1rem 0' }}>Rincian Aktivitas:</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedReport.timesheet_activities?.map(act => (
+                  <div key={act.id} style={{ display: 'flex', gap: '0.75rem', fontSize: '0.85rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ color: '#ffd54f', fontWeight: 'bold', width: '95px', flexShrink: 0 }}>
+                      {act.start_time.substring(0,5)} - {act.end_time.substring(0,5)}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ color: '#fff', fontWeight: '500', marginBottom: '0.25rem' }}>{act.activity}</div>
+                      {act.remarks && <div style={{ color: 'var(--color-silver)', fontStyle: 'italic', fontSize: '0.8rem' }}>{act.remarks}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div style={{ padding: '1rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSelectedReport(null)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>Tutup</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

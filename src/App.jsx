@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { App as CapacitorApp } from '@capacitor/app';
 import MainLayout from './layouts/MainLayout';
+import GlobalToast from './components/GlobalToast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AddUnit from './pages/AddUnit';
@@ -12,6 +15,31 @@ import SparePartManager from './pages/SparePartManager';
 import AddUser from './pages/AddUser';
 import TimesheetOperator from './pages/TimesheetOperator';
 import UaReport from './pages/UaReport';
+
+// Handle Hardware Back Button for Android
+const HardwareBackButtonHandler = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleBackButton = async () => {
+      const isHome = location.pathname === '/dashboard' || location.pathname === '/login' || location.pathname === '/';
+      if (isHome) {
+        CapacitorApp.exitApp();
+      } else {
+        navigate(-1);
+      }
+    };
+
+    const backButtonListener = CapacitorApp.addListener('backButton', handleBackButton);
+
+    return () => {
+      backButtonListener.then(listener => listener.remove());
+    };
+  }, [location, navigate]);
+
+  return null;
+};
 
 // Route Guard Component
 const ProtectedRoute = ({ children }) => {
@@ -66,6 +94,8 @@ const IndexRedirect = () => {
 function App() {
   return (
     <BrowserRouter>
+      <HardwareBackButtonHandler />
+      <GlobalToast />
       <Routes>
         <Route path="/login" element={<Login />} />
         

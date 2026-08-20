@@ -1,4 +1,4 @@
-package com.maintenance.app;
+package com.bmponline;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -101,6 +101,7 @@ export default function Dashboard() {
 
   // MMU Capacity Simulation State
   const simTargetRitasi = 2; // Hardcoded default max ritasi per hari
+  const [activeAllWOs, setActiveAllWOs] = useState([]);
   const [activeBreakdownWOs, setActiveBreakdownWOs] = useState([]);
 
   const fetchDashboardData = async () => {
@@ -338,18 +339,18 @@ export default function Dashboard() {
           console.warn('P2H fetch error:', e);
         }
 
-        // 5. Fetch Active Breakdown Work Orders
+        // 5. Fetch Active Work Orders
         try {
           const { data: woData, error: woErr } = await supabase
             .from('work_orders')
-            .select('*')
-            .eq('kategori_pekerjaan', 'Perbaikan Breakdown');
+            .select('*');
             
           if (!woErr && woData) {
             const activeWo = woData.filter(wo => 
               wo.status !== 'Completed (Selesai)' && wo.status !== 'Canceled (Dibatalkan)'
             );
-            setActiveBreakdownWOs(activeWo);
+            setActiveAllWOs(activeWo);
+            setActiveBreakdownWOs(activeWo.filter(wo => wo.kategori_pekerjaan === 'Perbaikan Breakdown'));
           }
         } catch (e) {
           console.warn('WO fetch error:', e);
@@ -712,6 +713,24 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* ── WORK ORDER REMINDER (Untuk Operator / Leading Hand) ── */}
+          {(userRoleLower.includes('operator') || userRoleLower.includes('leading hand')) && activeAllWOs.length > 0 && (
+            <div style={{ margin: '0 1rem 1rem 1rem', padding: '0.75rem', backgroundColor: 'rgba(255, 152, 0, 0.1)', border: '1px solid #ff9800', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <ClipboardCheck size={18} color="#ff9800" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#ffb74d' }}>Reminder Work Order Aktif</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.75rem', color: '#e0e0e0', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {activeAllWOs.map(wo => (
+                  <li key={wo.id}>
+                    <strong>{wo.no_lambung}</strong> akan menjalani <strong>{wo.kategori_pekerjaan}</strong> pada {new Date(wo.planned_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric'})}
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-silver)', marginTop: '0.1rem' }}>{wo.deskripsi_pekerjaan}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* ── MENU UTAMA 3 x 2 GRID (Tanpa Dashboard & Keluar) ── */}
           <div className="mobile-menu-container">
             {canManage && (
@@ -850,53 +869,55 @@ export default function Dashboard() {
                   )}
 
                   {/* PENDING GOODS ISSUE MOBILE WIDGET */}
-                  <div style={{ marginTop: '1rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: pendingGoodsIssues.length > 0 ? '#ff5252' : '#81c784', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.5rem' }}>
-                      {pendingGoodsIssues.length > 0 ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
-                      {pendingGoodsIssues.length > 0 ? `Pending Goods Issue (${pendingGoodsIssues.length})` : 'Semua Part Telah di-GI'}
-                    </div>
-                    
-                    {pendingGoodsIssues.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {pendingGoodsIssues.map((item, idx) => (
-                          <div key={`${item.reportId}-${item.partIndex}-${idx}`} style={{
-                            padding: '0.65rem 0.75rem',
-                            background: 'var(--color-bg-card)',
-                            borderRadius: '8px',
-                            borderLeft: '4px solid #ff5252',
-                            borderTop: '1px solid var(--color-border)',
-                            borderRight: '1px solid var(--color-border)',
-                            borderBottom: '1px solid var(--color-border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '0.5rem'
-                          }}>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontWeight: 'bold', color: 'var(--color-yellow-primary)', fontSize: '0.9rem' }}>{item.noLambung}</span>
-                                <span style={{ fontSize: '0.7rem', color: '#ff8a80', fontWeight: 'bold' }}>{item.qty} {item.unit}</span>
+                  {canManage && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: pendingGoodsIssues.length > 0 ? '#ff5252' : '#81c784', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                        {pendingGoodsIssues.length > 0 ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
+                        {pendingGoodsIssues.length > 0 ? `Pending Goods Issue (${pendingGoodsIssues.length})` : 'Semua Part Telah di-GI'}
+                      </div>
+                      
+                      {pendingGoodsIssues.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {pendingGoodsIssues.map((item, idx) => (
+                            <div key={`${item.reportId}-${item.partIndex}-${idx}`} style={{
+                              padding: '0.65rem 0.75rem',
+                              background: 'var(--color-bg-card)',
+                              borderRadius: '8px',
+                              borderLeft: '4px solid #ff5252',
+                              borderTop: '1px solid var(--color-border)',
+                              borderRight: '1px solid var(--color-border)',
+                              borderBottom: '1px solid var(--color-border)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.5rem'
+                            }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span style={{ fontWeight: 'bold', color: 'var(--color-yellow-primary)', fontSize: '0.9rem' }}>{item.noLambung}</span>
+                                  <span style={{ fontSize: '0.7rem', color: '#ff8a80', fontWeight: 'bold' }}>{item.qty} {item.unit}</span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#ffffff', marginTop: '0.2rem' }}>
+                                  {item.partName} <span style={{ color: 'var(--color-silver)' }}>{item.partNumber ? `(${item.partNumber})` : ''}</span>
+                                </div>
                               </div>
-                              <div style={{ fontSize: '0.75rem', color: '#ffffff', marginTop: '0.2rem' }}>
-                                {item.partName} <span style={{ color: 'var(--color-silver)' }}>{item.partNumber ? `(${item.partNumber})` : ''}</span>
-                              </div>
+                              <button 
+                                onClick={() => handleGoodsIssueCheck(item.reportId, item.reportType, item.partIndex)}
+                                className="btn btn-primary"
+                                style={{ padding: '0.3rem 0.5rem', fontSize: '0.7rem', height: 'auto', borderRadius: '4px' }}
+                              >
+                                <CheckCircle2 size={12} /> Selesai
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => handleGoodsIssueCheck(item.reportId, item.reportType, item.partIndex)}
-                              className="btn btn-primary"
-                              style={{ padding: '0.3rem 0.5rem', fontSize: '0.7rem', height: 'auto', borderRadius: '4px' }}
-                            >
-                              <CheckCircle2 size={12} /> Selesai
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ padding: '1rem', textAlign: 'center', background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px dashed #4caf50', color: 'var(--color-silver)' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-silver-dark)' }}>Tidak ada part yang perlu diproses Goods Issue.</div>
-                      </div>
-                    )}
-                  </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', fontStyle: 'italic', padding: '0.5rem' }}>
+                          Tidak ada spare part pending GI.
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                 </div>
               )}
@@ -1352,64 +1373,66 @@ export default function Dashboard() {
             <ProblemUaWidget />
 
             {/* ── 0.5 PENDING GOODS ISSUE WIDGET ── */}
-            <div className="card mb-4" style={{ padding: '1rem 1.25rem', border: pendingGoodsIssues.length > 0 ? '1px solid #ff5252' : '1px solid rgba(76, 175, 80, 0.3)', background: pendingGoodsIssues.length > 0 ? 'linear-gradient(135deg, rgba(255, 82, 82, 0.08) 0%, rgba(30, 34, 42, 0.95) 100%)' : 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(30, 34, 42, 0.95) 100%)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: pendingGoodsIssues.length > 0 ? '0.75rem' : '0' }}>
-                <h2 style={{ fontSize: '1rem', margin: 0, color: pendingGoodsIssues.length > 0 ? '#ff5252' : '#81c784', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  {pendingGoodsIssues.length > 0 ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-                  {pendingGoodsIssues.length > 0 ? 'Peringatan: Sparepart Belum di-Goods Issue (GI)' : 'Semua Sparepart Telah di-Goods Issue (GI)'}
-                </h2>
-              </div>
-              
-              {pendingGoodsIssues.length > 0 ? (
-                <>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-silver-light)', marginBottom: '1rem' }}>
-                    Terdapat {pendingGoodsIssues.length} item sparepart yang telah digunakan pada servis / perbaikan namun belum dilaporkan keluar dari gudang (Goods Issue). Silakan centang setelah melakukan GI di sistem.
-                  </div>
-                  
-                  <div style={{ overflowX: 'auto', maxHeight: '300px' }} className="hide-scrollbar">
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Tanggal</th>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>No Lambung</th>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Nama & Part Number</th>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Qty</th>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Mekanik</th>
-                          <th style={{ padding: '0.5rem', color: 'var(--color-silver)', textAlign: 'center' }}>Aksi GI</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pendingGoodsIssues.map((item, idx) => (
-                          <tr key={`${item.reportId}-${item.partIndex}-${idx}`} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                            <td style={{ padding: '0.5rem', color: 'var(--color-silver-light)' }}>{item.tanggal}</td>
-                            <td style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--color-yellow-primary)' }}>{item.noLambung}</td>
-                            <td style={{ padding: '0.5rem' }}>
-                              <div style={{ color: '#ffffff' }}>{item.partName}</div>
-                              {item.partNumber && <div style={{ fontSize: '0.7rem', color: 'var(--color-silver)' }}>{item.partNumber}</div>}
-                            </td>
-                            <td style={{ padding: '0.5rem', fontWeight: 'bold', color: '#ff8a80' }}>{item.qty} {item.unit}</td>
-                            <td style={{ padding: '0.5rem', color: 'var(--color-silver-light)' }}>{item.mekanik}</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                              <button 
-                                onClick={() => handleGoodsIssueCheck(item.reportId, item.reportType, item.partIndex)}
-                                className="btn btn-primary"
-                                style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', borderRadius: '4px' }}
-                              >
-                                <CheckCircle2 size={14} /> Selesai
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-silver)', marginTop: '0.5rem' }}>
-                  Tidak ada part yang perlu diproses Goods Issue. Gudang dan servis sudah tersinkronisasi.
+            {canManage && (
+              <div className="card mb-4" style={{ padding: '1rem 1.25rem', border: pendingGoodsIssues.length > 0 ? '1px solid #ff5252' : '1px solid rgba(76, 175, 80, 0.3)', background: pendingGoodsIssues.length > 0 ? 'linear-gradient(135deg, rgba(255, 82, 82, 0.08) 0%, rgba(30, 34, 42, 0.95) 100%)' : 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(30, 34, 42, 0.95) 100%)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: pendingGoodsIssues.length > 0 ? '0.75rem' : '0' }}>
+                  <h2 style={{ fontSize: '1rem', margin: 0, color: pendingGoodsIssues.length > 0 ? '#ff5252' : '#81c784', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {pendingGoodsIssues.length > 0 ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                    {pendingGoodsIssues.length > 0 ? 'Peringatan: Sparepart Belum di-Goods Issue (GI)' : 'Semua Sparepart Telah di-Goods Issue (GI)'}
+                  </h2>
                 </div>
-              )}
-            </div>
+                
+                {pendingGoodsIssues.length > 0 ? (
+                  <>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-silver-light)', marginBottom: '1rem' }}>
+                      Terdapat {pendingGoodsIssues.length} item sparepart yang telah digunakan pada servis / perbaikan namun belum dilaporkan keluar dari gudang (Goods Issue). Silakan centang setelah melakukan GI di sistem.
+                    </div>
+                    
+                    <div style={{ overflowX: 'auto', maxHeight: '300px' }} className="hide-scrollbar">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Tanggal</th>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>No Lambung</th>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Nama & Part Number</th>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Qty</th>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)' }}>Mekanik</th>
+                            <th style={{ padding: '0.5rem', color: 'var(--color-silver)', textAlign: 'center' }}>Aksi GI</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingGoodsIssues.map((item, idx) => (
+                            <tr key={`${item.reportId}-${item.partIndex}-${idx}`} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                              <td style={{ padding: '0.5rem', color: 'var(--color-silver-light)' }}>{item.tanggal}</td>
+                              <td style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--color-yellow-primary)' }}>{item.noLambung}</td>
+                              <td style={{ padding: '0.5rem' }}>
+                                <div style={{ color: '#ffffff' }}>{item.partName}</div>
+                                {item.partNumber && <div style={{ fontSize: '0.7rem', color: 'var(--color-silver)' }}>{item.partNumber}</div>}
+                              </td>
+                              <td style={{ padding: '0.5rem', fontWeight: 'bold', color: '#ff8a80' }}>{item.qty} {item.unit}</td>
+                              <td style={{ padding: '0.5rem', color: 'var(--color-silver-light)' }}>{item.mekanik}</td>
+                              <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                <button 
+                                  onClick={() => handleGoodsIssueCheck(item.reportId, item.reportType, item.partIndex)}
+                                  className="btn btn-primary"
+                                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: 'auto', borderRadius: '4px' }}
+                                >
+                                  <CheckCircle2 size={14} /> Selesai
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-silver)', marginTop: '0.5rem' }}>
+                    Tidak ada part yang perlu diproses Goods Issue. Gudang dan servis sudah tersinkronisasi.
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── 2. PERKIRAAN SERVIS TERDEKAT (AI PREDICTIVE LIST) ── */}
             <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1rem' }}>

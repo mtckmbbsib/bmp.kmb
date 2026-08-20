@@ -1123,7 +1123,8 @@ export default function PmService() {
     setSparePartList([{ partName: '', partNumber: '', qty: 1, unit: 'Pcs', statusPart: 'Baru' }]);
     setChecklist({});
     setRingkasan('');
-    navigate('/pm-service/history');
+    window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Laporan telah terkirim!' }));
+    navigate('/dashboard');
   };
 
 
@@ -1151,9 +1152,46 @@ export default function PmService() {
             Pembuatan & Riwayat Laporan Maintenance Periodik Unit
           </p>
         </div>
-      </div>
+        </div>
 
-      {/* ── TAB BUAT LAPORAN PM ── */}
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            background: 'rgba(22, 25, 29, 0.95)',
+            padding: '0.3rem',
+            borderRadius: '12px',
+            border: '1px solid var(--color-border)',
+            gap: '0.3rem',
+            marginBottom: '0.75rem',
+            overflowX: 'auto',
+            width: '100%'
+          }} className="hide-scrollbar">
+            <button 
+              onClick={() => navigate('/pm-service/create')} 
+              style={{
+                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
+                color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                border: 'none', transition: 'all 0.2s', minWidth: '90px'
+              }}
+            >
+              Laporan PM
+            </button>
+            <button 
+              onClick={() => navigate('/pm-service/history')} 
+              style={{
+                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
+                color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                border: 'none', transition: 'all 0.2s', minWidth: '90px'
+              }}
+            >
+              Riwayat
+            </button>
+          </div>
+        )}
+
+        {/* ── TAB BUAT LAPORAN PM ── */}
       {activeTab === 'create' && (
         <div className="card no-print hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1rem 1.25rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>

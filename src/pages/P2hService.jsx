@@ -879,7 +879,8 @@ export default function P2hService() {
       // Refresh data
       fetchReports();
       fetchUnits(); // so the dropdown gets updated hmkm
-      navigate('/p2h/pending');
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Laporan telah terkirim!' }));
+      navigate('/dashboard');
 
       // Reset form
       setSelectedJenisUnit('');

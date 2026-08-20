@@ -75,10 +75,11 @@ export default function SearchableSelect({ children, value, onChange, className,
       color: state.isDisabled ? 'var(--color-silver)' : '#fff' 
     }),
     menu: (base) => ({ ...base, backgroundColor: 'var(--color-bg-card)', zIndex: 9999, border: '1px solid var(--color-border)' }),
+    menuList: (base) => ({ ...base, backgroundColor: 'var(--color-bg-card, #1E2023)' }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isFocused ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
-      color: state.isFocused ? 'var(--color-yellow-primary)' : '#fff',
+      backgroundColor: state.isFocused ? 'rgba(255, 193, 7, 0.15)' : 'transparent',
+      color: state.isFocused ? 'var(--color-yellow-primary, #ffc107)' : '#ffffff',
       cursor: 'pointer'
     }),
     input: (base) => ({ ...base, color: '#fff' }),

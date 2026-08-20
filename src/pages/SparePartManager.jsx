@@ -395,8 +395,56 @@ export default function SparePartManager() {
         </h1>
       </div>
 
-      <div className="card hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-        
+        <div className="card hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+          
+          {isMobile && (
+            <div style={{
+              display: 'flex',
+              background: 'rgba(22, 25, 29, 0.95)',
+              padding: '0.3rem',
+              borderRadius: '12px',
+              border: '1px solid var(--color-border)',
+              gap: '0.3rem',
+              marginBottom: '1rem',
+              overflowX: 'auto',
+              width: '100%'
+            }} className="hide-scrollbar">
+              <button 
+                onClick={() => navigate('/spare-part/list')} 
+                style={{
+                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                  background: activeTab === 'list' ? 'var(--color-yellow-primary)' : 'transparent',
+                  color: activeTab === 'list' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
+                }}
+              >
+                List Part
+              </button>
+              <button 
+                onClick={() => navigate('/spare-part/in')} 
+                style={{
+                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                  background: activeTab === 'in' ? 'var(--color-yellow-primary)' : 'transparent',
+                  color: activeTab === 'in' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
+                }}
+              >
+                Item Masuk
+              </button>
+              <button 
+                onClick={() => navigate('/spare-part/out')} 
+                style={{
+                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+                  background: activeTab === 'out' ? 'var(--color-yellow-primary)' : 'transparent',
+                  color: activeTab === 'out' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
+                }}
+              >
+                Part Keluar
+              </button>
+            </div>
+          )}
+
         {/* --- TAB LIST SPARE PART --- */}
         {activeTab === 'list' && (
           <div>

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Maintenance</string>
-    <string name="title_activity_main">Maintenance</string>
-    <string name="package_name">com.maintenance.app</string>
-    <string name="custom_url_scheme">com.maintenance.app</string>
+    <string name="app_name">BMP</string>
+    <string name="title_activity_main">BMP</string>
+    <string name="package_name">com.bmponline</string>
+    <string name="custom_url_scheme">com.bmponline</string>
 </resources>
