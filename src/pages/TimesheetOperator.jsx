@@ -49,6 +49,7 @@ export default function TimesheetOperator() {
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const operatorName = user?.name || user?.full_name || user?.username || 'Operator';
+  const jabatan = (user?.jabatan || '').toLowerCase();
 
   // Form State
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
