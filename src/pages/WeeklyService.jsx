@@ -785,6 +785,44 @@ export default function WeeklyService() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.35rem', borderRadius: '12px', overflowX: 'auto' }} className="hide-scrollbar">
+        <button 
+          onClick={() => navigate('/weekly-service/create')} 
+          style={{
+            flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+            background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
+            color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+            border: 'none', transition: 'all 0.2s', minWidth: '90px'
+          }}
+        >
+          Input
+        </button>
+        <button 
+          onClick={() => navigate('/weekly-service/history')} 
+          style={{
+            flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+            background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
+            color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+            border: 'none', transition: 'all 0.2s', minWidth: '90px'
+          }}
+        >
+          Riwayat
+        </button>
+        {!isMobile && (
+          <button 
+            onClick={() => navigate('/weekly-service/schedule')} 
+            style={{
+              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
+              background: activeTab === 'schedule' ? 'var(--color-yellow-primary)' : 'transparent',
+              color: activeTab === 'schedule' ? 'var(--color-bg-main)' : 'var(--color-silver)',
+              border: 'none', transition: 'all 0.2s', minWidth: '90px'
+            }}
+          >
+            Jadwal
+          </button>
+        )}
+      </div>
+
       {activeTab === 'create' && (
         <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1rem 1.25rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -1388,15 +1426,7 @@ export default function WeeklyService() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.2rem', paddingTop: '0.4rem', borderTop: '1px dashed var(--color-border)' }}>
                     <HistoryBadge done={r.filledItems} total={r.totalItems} tidakBaik={r.tidakBaikItems} />
-                    <button 
-                      type="button"
-                      className="btn btn-secondary" 
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.725rem', color: '#ff8a80', borderColor: 'rgba(255,138,128,0.3)' }} 
-                      onClick={() => setReports(rs => rs.filter(x => x.id !== r.id))} 
-                      title="Hapus Laporan"
-                    >
-                      <Trash2 size={13} style={{ marginRight: '0.2rem' }} /> Hapus
-                    </button>
+                    {/* Hapus button dihilangkan sesuai permintaan */}
                   </div>
                 </div>
               ))}
@@ -1406,8 +1436,8 @@ export default function WeeklyService() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {['Tanggal', 'Unit', 'HM', 'Pelapor', 'Checklist', 'Aksi'].map(h => (
-                    <th key={h} style={{ padding: '0.6rem 0.85rem', color: 'var(--color-silver)', textAlign: h === 'Aksi' ? 'center' : 'left', fontSize: '0.825rem' }}>{h}</th>
+                  {['Tanggal', 'Unit', 'HM', 'Pelapor', 'Checklist'].map(h => (
+                    <th key={h} style={{ padding: '0.6rem 0.85rem', color: 'var(--color-silver)', textAlign: 'left', fontSize: '0.825rem' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1424,11 +1454,6 @@ export default function WeeklyService() {
                     <td style={{ padding: '0.6rem 0.85rem', fontSize: '0.85rem' }}>{r.hm} HM</td>
                     <td style={{ padding: '0.6rem 0.85rem', fontSize: '0.85rem' }}>{r.reporter}</td>
                     <td style={{ padding: '0.6rem 0.85rem' }}><HistoryBadge done={r.filledItems} total={r.totalItems} tidakBaik={r.tidakBaikItems} /></td>
-                    <td style={{ padding: '0.6rem 0.85rem', textAlign: 'center' }}>
-                      <button className="btn btn-secondary" style={{ padding: '0.3rem', minWidth: '32px', color: '#ff8a80', borderColor: 'rgba(255,138,128,0.3)' }} onClick={() => setReports(rs => rs.filter(x => x.id !== r.id))} title="Hapus">
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -230,7 +230,7 @@ export default function TimesheetOperator() {
           >
             Riwayat
           </button>
-          {!jabatan.includes('operator') && (
+          {!isMobile && !jabatan.includes('operator') && (
             <button 
               onClick={() => navigate('/timesheet/report')} 
               style={{
