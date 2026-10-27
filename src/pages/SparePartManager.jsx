@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Trash2, CheckCircle, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showError, showWarning } from '../components/UniversalDialog';
 
 
 export default function SparePartManager() {
@@ -12,8 +13,10 @@ export default function SparePartManager() {
 
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
   const jabatan = user?.jabatan?.toLowerCase() || '';
-  const canEditMaster = jabatan.includes('admin') || jabatan.includes('leading hand maintenance');
+  const canEditMaster = !isBalikpapan && (jabatan.includes('admin') || jabatan.includes('leading hand maintenance'));
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [masterParts, setMasterParts] = useState([]);
@@ -148,14 +151,24 @@ export default function SparePartManager() {
   }, [masterParts]);
 
   const handleDeleteMaster = async (id) => {
-    if (window.confirm('Hapus spare part ini dari katalog? Perhatian: Stok historis akan menjadi yatim/terputus.')) {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
+    const ok = await showConfirm('Hapus spare part ini dari katalog? Perhatian: Stok historis akan menjadi terputus.', 'Konfirmasi Hapus');
+    if (ok) {
       await supabase.from('spare_parts_catalog').delete().eq('id', id);
       fetchData();
+      await showSuccess('Spare part berhasil dihapus.');
     }
   };
 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     try {
       const { error } = await supabase.from('spare_parts_catalog').update({
         jenis_unit: editFormData.jenis_unit,
@@ -170,14 +183,19 @@ export default function SparePartManager() {
       if (error) throw error;
       setShowEditForm(false);
       fetchData();
+      await showSuccess('Perubahan katalog spare part berhasil disimpan!');
     } catch (err) {
-      alert('Gagal menyimpan perubahan.');
+      await showError('Gagal menyimpan perubahan.');
       console.error(err);
     }
   };
 
   const handleSaveIn = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     try {
       let partId = null;
       let existingPart = null;
@@ -195,7 +213,7 @@ export default function SparePartManager() {
         if (!existingPart) {
           const similarPart = masterParts.find(p => normalizePN(p.part_number) === inputPartNumberNormalized);
           if (similarPart) {
-            const confirm = window.confirm(`Part number yang Anda masukkan ("${inputPartNumber}") mirip dengan part "${similarPart.part_number}" yang sudah ada di katalog.\n\nApakah Anda ingin menggunakan part yang sudah ada tersebut?\n(Klik OK untuk YA menggunakan yang lama, klik Cancel untuk TETAP BUAT BARU)`);
+            const confirm = await showConfirm(`Part number yang Anda masukkan ("${inputPartNumber}") mirip dengan part "${similarPart.part_number}" yang sudah ada di katalog.\n\nApakah Anda ingin menggunakan part yang sudah ada tersebut?`, 'Duplikasi Terdeteksi', 'Gunakan Yang Ada', 'Buat Part Baru');
             if (confirm) {
               existingPart = similarPart;
               inFormData.part_number = similarPart.part_number; // Update data so it saves correctly
@@ -250,7 +268,7 @@ export default function SparePartManager() {
         setInFormData({ jenis_unit: '', merk: '', part_name: '', part_number: '', qty: 1, date: new Date().toISOString().split('T')[0], note: '', po_number: '', isNewCategory: false, site: '', min_stock: 0, is_critical: false });
       }
     } catch (err) {
-      alert('Gagal menyimpan.');
+      await showError('Gagal menyimpan.');
       console.error(err);
     }
   };
@@ -270,7 +288,7 @@ export default function SparePartManager() {
     document.body.removeChild(link);
   };
 
-  const processFile = (file) => {
+  const processFile = async (file) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -291,7 +309,7 @@ export default function SparePartManager() {
         }
         setBulkPreview(parsed);
       } catch (err) {
-        alert('Terjadi kesalahan saat membaca file CSV.');
+        await showError('Terjadi kesalahan saat membaca file CSV.');
         console.error(err);
       }
     };
@@ -362,12 +380,12 @@ export default function SparePartManager() {
         successCount++;
       }
       
-      alert(`Berhasil menyimpan ${successCount} data ke database!`);
+      await showSuccess(`Berhasil menyimpan ${successCount} data ke database!`, 'Bulk Upload Berhasil');
       setShowBulkForm(false);
       setBulkPreview([]);
       fetchData();
     } catch (err) {
-      alert(`Terjadi kesalahan: ${err.message}`);
+      await showError(`Terjadi kesalahan: ${err.message}`, 'Upload Gagal');
       console.error(err);
     }
     setIsUploading(false);
@@ -385,65 +403,49 @@ export default function SparePartManager() {
     border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
   };
 
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div className="no-print" style={{ flexShrink: 0, marginBottom: '1rem' }}>
-        <h1 style={{ textAlign: 'center', fontSize: '1.2rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-          <Package size={22} style={{ color: 'var(--color-yellow-primary)' }} />
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Package size={20} style={{ color: 'var(--color-yellow-primary)' }} />
           Pengelolaan Spare Part
         </h1>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Katalog Stok, Penerimaan Item Masuk, & Pengeluaran Spare Part
+        </p>
+
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'list' ? 'active' : ''}`}
+            onClick={() => navigate('/spare-part/list')}
+          >
+            <Package size={14} />
+            <span>List Part ({masterParts.length})</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'in' ? 'active' : ''}`}
+            onClick={() => navigate('/spare-part/in')}
+          >
+            <Upload size={14} />
+            <span>Item Masuk ({inItems.length})</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'out' ? 'active' : ''}`}
+            onClick={() => navigate('/spare-part/out')}
+          >
+            <Trash2 size={14} />
+            <span>Part Keluar ({outItems.length})</span>
+          </button>
+        </div>
       </div>
 
-        <div className="card hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-          
-          {isMobile && (
-            <div style={{
-              display: 'flex',
-              background: 'rgba(22, 25, 29, 0.95)',
-              padding: '0.3rem',
-              borderRadius: '12px',
-              border: '1px solid var(--color-border)',
-              gap: '0.3rem',
-              marginBottom: '1rem',
-              overflowX: 'auto',
-              width: '100%'
-            }} className="hide-scrollbar">
-              <button 
-                onClick={() => navigate('/spare-part/list')} 
-                style={{
-                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                  background: activeTab === 'list' ? 'var(--color-yellow-primary)' : 'transparent',
-                  color: activeTab === 'list' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
-                }}
-              >
-                List Part
-              </button>
-              <button 
-                onClick={() => navigate('/spare-part/in')} 
-                style={{
-                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                  background: activeTab === 'in' ? 'var(--color-yellow-primary)' : 'transparent',
-                  color: activeTab === 'in' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
-                }}
-              >
-                Item Masuk
-              </button>
-              <button 
-                onClick={() => navigate('/spare-part/out')} 
-                style={{
-                  flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                  background: activeTab === 'out' ? 'var(--color-yellow-primary)' : 'transparent',
-                  color: activeTab === 'out' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                  border: 'none', transition: 'all 0.2s', minWidth: '90px'
-                }}
-              >
-                Part Keluar
-              </button>
-            </div>
-          )}
+      <div className="card hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.75rem' : '1.15rem', width: '100%' }}>
 
         {/* --- TAB LIST SPARE PART --- */}
         {activeTab === 'list' && (

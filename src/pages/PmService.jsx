@@ -7,6 +7,7 @@ import {
 
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showWarning, showError } from '../components/UniversalDialog';
 
 
 // ── DUMMY SPIP DATABASE UNTUK POPULASI NO LAMBUNG ──
@@ -531,7 +532,13 @@ const BTN_STYLES = {
 export default function PmService() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = tab || 'create';
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [reports, setReports] = useState([]);
@@ -693,11 +700,13 @@ export default function PmService() {
   };
 
   const handleDeleteMasterPart = async (id, name) => {
-    if (window.confirm(`Hapus sparepart "${name}" dari daftar katalog master?`)) {
+    const ok = await showConfirm(`Hapus sparepart "${name}" dari daftar katalog master?`, 'Konfirmasi Hapus');
+    if (ok) {
       try {
         await supabase.from('spare_parts_catalog').delete().eq('id', id);
       } catch (_) {}
       setMasterParts(prev => prev.filter(p => p.id !== id));
+      await showSuccess(`Sparepart "${name}" berhasil dihapus.`);
     }
   };
 
@@ -905,6 +914,10 @@ export default function PmService() {
   const [showValidationModal, setShowValidationModal] = useState(false);
 
   const handleStartEditReport = (report) => {
+    if (isBalikpapan) {
+      alert('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     setEditingId(report.id);
     setPmTier(report.pmTier || 'PM 250');
     setSelectedJenis(report.jenisUnit || '');
@@ -943,7 +956,6 @@ export default function PmService() {
       setSparePartList(report.spareParts);
     } else {
       setSparePartList([{ partName: '', partNumber: '', qty: 1, unit: 'Pcs', statusPart: 'Baru' }]);
-    setSparePartList([{ partName: '', partNumber: '', qty: 1, unit: 'Pcs', statusPart: 'Baru' }]);
     }
 
     setDowntimeHours(report.downtime_hours || '');
@@ -953,6 +965,7 @@ export default function PmService() {
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setPmTier('PM 250');
     setSelectedJenis('');
     setSelectedUnit(null);
     setHmValue('');
@@ -966,6 +979,10 @@ export default function PmService() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      alert('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     if (missingFields.length > 0) {
       setShowValidationModal(true);
       return;
@@ -1142,54 +1159,36 @@ export default function PmService() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* Header Title + Tabs */}
-      <div className="no-print" style={{ flexShrink: 0, marginBottom: '1rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-end', gap: '1rem' }}>
-        <div style={{ textAlign: isMobile ? 'center' : 'left' }}>
-          <h1 className="mb-1" style={{ fontSize: '1.4rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: '0.5rem', margin: 0 }}>
-            <Wrench size={22} style={{ color: 'var(--color-yellow-primary)' }} />
-            Preventive Maintenance (PM Service)
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
-            Pembuatan & Riwayat Laporan Maintenance Periodik Unit
-          </p>
-        </div>
-        </div>
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Wrench size={20} style={{ color: 'var(--color-yellow-primary)' }} />
+          PM (Preventive Maintenance)
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Pembuatan & Riwayat Laporan Maintenance Periodik Unit
+        </p>
 
-        {isMobile && (
-          <div style={{
-            display: 'flex',
-            background: 'rgba(22, 25, 29, 0.95)',
-            padding: '0.3rem',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            gap: '0.3rem',
-            marginBottom: '0.75rem',
-            overflowX: 'auto',
-            width: '100%'
-          }} className="hide-scrollbar">
-            <button 
-              onClick={() => navigate('/pm-service/create')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Laporan PM
-            </button>
-            <button 
-              onClick={() => navigate('/pm-service/history')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Riwayat
-            </button>
-          </div>
-        )}
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/pm-service/create')}
+          >
+            <PlusCircle size={14} />
+            <span>Buat Laporan PM</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/pm-service/history')}
+          >
+            <List size={14} />
+            <span>Riwayat Laporan PM</span>
+          </button>
+        </div>
+      </div>
 
         {/* ── TAB BUAT LAPORAN PM ── */}
       {activeTab === 'create' && (

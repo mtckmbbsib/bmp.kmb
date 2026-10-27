@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showWarning, showError } from '../components/UniversalDialog';
 
 
 // Helper Angka Romawi untuk Bulan (1-12)
@@ -28,7 +29,13 @@ function getLoggedInUser() {
 export default function ReportPerbaikan() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = tab || 'create';
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [reports, setReports] = useState([]);
@@ -257,13 +264,18 @@ export default function ReportPerbaikan() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
+
     if (!selectedNoLambung) {
-      alert('Silakan pilih Nomor Lambung Unit!');
+      await showWarning('Silakan pilih Nomor Lambung Unit!');
       return;
     }
 
     if (!noUrut.trim()) {
-      alert('Silakan isi Nomor Urut laporan (contoh: 01, 002)!');
+      await showWarning('Silakan isi Nomor Urut laporan (contoh: 01, 002)!');
       return;
     }
 
@@ -319,7 +331,7 @@ export default function ReportPerbaikan() {
       } : r));
 
       setEditingId(null);
-      alert(`Laporan Kegiatan Perbaikan ${formattedNomorLaporan} berhasil diperbarui!`);
+      await showSuccess(`Laporan Kegiatan Perbaikan ${formattedNomorLaporan} berhasil diperbarui!`);
     } else {
       // Insert new mode
       const newId = Date.now().toString();
@@ -351,7 +363,7 @@ export default function ReportPerbaikan() {
       };
 
       setReports(prev => [newReportItem, ...prev]);
-      alert(`Laporan Kegiatan Perbaikan ${formattedNomorLaporan} berhasil disimpan!`);
+      await showSuccess(`Laporan Kegiatan Perbaikan ${formattedNomorLaporan} berhasil disimpan!`);
     }
 
     // Reset Form
@@ -371,7 +383,11 @@ export default function ReportPerbaikan() {
     navigate('/dashboard');
   };
 
-  const handleStartEdit = (report) => {
+  const handleStartEdit = async (report) => {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     setEditingId(report.id);
     setNoUrut(report.noUrut || '');
     setKategoriForm(report.kategoriForm || 'UNIT');
@@ -406,11 +422,17 @@ export default function ReportPerbaikan() {
   };
 
   const handleDelete = async (id, nomor) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus laporan "${nomor}"?`)) {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
+    const ok = await showConfirm(`Apakah Anda yakin ingin menghapus laporan "${nomor}"?`, 'Konfirmasi Hapus Laporan');
+    if (ok) {
       try {
         await supabase.from('repair_reports').delete().eq('id', id);
       } catch (_) {}
       setReports(prev => prev.filter(r => r.id !== id));
+      await showSuccess(`Laporan "${nomor}" berhasil dihapus.`);
     }
   };
 
@@ -422,57 +444,40 @@ export default function ReportPerbaikan() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* Header Page Title + Tabs */}
-      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
-        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.2rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-          <PenTool size={22} style={{ color: 'var(--color-yellow-primary)' }} />
-          Laporan Kegiatan Perbaikan
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <PenTool size={20} style={{ color: 'var(--color-yellow-primary)' }} />
+          Report Perbaikan
         </h1>
-        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.65rem' }}>
-          Formulir Resmi (F-KMB-BMP-BSIB-001-003, Rev. 02)
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Formulir Resmi Kegiatan Perbaikan (F-KMB-BMP-BSIB-001-003)
         </p>
 
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/report/create')}
+          >
+            <PlusCircle size={14} />
+            <span>Buat Laporan</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/report/history')}
+          >
+            <List size={14} />
+            <span>Riwayat Perbaikan ({reports.length})</span>
+          </button>
+        </div>
       </div>
-
-      {isMobile && (
-          <div style={{
-            display: 'flex',
-            background: 'rgba(22, 25, 29, 0.95)',
-            padding: '0.3rem',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            gap: '0.3rem',
-            marginBottom: '0.75rem',
-            overflowX: 'auto',
-            width: '100%'
-          }} className="hide-scrollbar">
-            <button 
-              onClick={() => navigate('/report/create')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Laporan Baru
-            </button>
-            <button 
-              onClick={() => navigate('/report/history')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Riwayat
-            </button>
-          </div>
-        )}
 
       {/* ── TAB BUAT LAPORAN PERBAIKAN ── */}
       {activeTab === 'create' && (
-        <div className="card no-print hide-scrollbar" style={{ flex: 1, overflowY: 'auto', maxWidth: '840px', margin: '0 auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1rem 1rem 85px 1rem' }}>
+        <div className="card no-print hide-scrollbar" style={{ flex: 1, overflowY: 'auto', width: '100%', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1.15rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             
             {/* ── CARD 1: TOP SUMMARY CARD ── */}

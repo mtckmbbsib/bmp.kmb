@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { App as CapacitorApp } from '@capacitor/app';
 import MainLayout from './layouts/MainLayout';
 import GlobalToast from './components/GlobalToast';
+import UniversalDialog from './components/UniversalDialog';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AddUnit from './pages/AddUnit';
@@ -102,6 +103,7 @@ function App() {
     <BrowserRouter>
       <HardwareBackButtonHandler />
       <GlobalToast />
+      <UniversalDialog />
       <Routes>
         <Route path="/login" element={<Login />} />
         

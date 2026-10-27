@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, List, PlusCircle, Save, Trash2, User, Gauge, Truck, Hash, CheckSquare, ClipboardList, AlertTriangle, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showWarning, showError } from '../components/UniversalDialog';
 
 
 // ─── Checklist template ──────────────────────────────────────────────────────
@@ -432,7 +433,13 @@ const HistoryBadge = ({ done, total, tidakBaik }) => {
 export default function WeeklyService() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = tab || 'create';
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [reports, setReports] = useState([]);
@@ -551,6 +558,10 @@ export default function WeeklyService() {
 
   const handleSaveScheduleItem = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     if (!scheduleUnit) return;
 
     const payload = {
@@ -582,14 +593,20 @@ export default function WeeklyService() {
   };
 
   const handleDeleteScheduleItem = async (index) => {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     const item = weeklySchedule[index];
-    if (window.confirm("Apakah Anda yakin ingin menghapus entri jadwal ini?")) {
+    const ok = await showConfirm("Apakah Anda yakin ingin menghapus entri jadwal ini?", "Konfirmasi Hapus Jadwal");
+    if (ok) {
       if (item && item.id) {
         try {
           await supabase.from('weekly_schedules').delete().eq('id', item.id);
         } catch (_) {}
       }
       setWeeklySchedule(prev => prev.filter((_, i) => i !== index));
+      await showSuccess('Entri jadwal berhasil dihapus.');
     }
   };
 
@@ -681,6 +698,10 @@ export default function WeeklyService() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      alert('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     if (missingFields.length > 0) {
       setShowValidationModal(true);
       return;
@@ -771,60 +792,48 @@ export default function WeeklyService() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       {/* ── HEADER HALAMAN WEEKLY SERVICE ── */}
-      <div className="no-print" style={{ flexShrink: 0, marginBottom: '1rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-end', gap: '1rem' }}>
-        <div style={{ textAlign: isMobile ? 'center' : 'left' }}>
-          <h1 className="mb-1" style={{ fontSize: '1.4rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: '0.5rem', margin: 0 }}>
-            <Calendar size={22} style={{ color: 'var(--color-yellow-primary)' }} />
-            Weekly Service
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
-            {isMobile 
-              ? 'Pembuatan Laporan & Riwayat Perawatan Mingguan Unit' 
-              : 'Pengaturan Jadwal, Form Laporan, & Riwayat Perawatan Mingguan Unit'}
-          </p>
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <Calendar size={20} style={{ color: 'var(--color-yellow-primary)' }} />
+          Weekly Service
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Jadwal, Formulir, & Riwayat Perawatan Mingguan Unit
+        </p>
+
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/weekly-service/create')}
+          >
+            <PlusCircle size={14} />
+            <span>Input Weekly</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/weekly-service/history')}
+          >
+            <List size={14} />
+            <span>Riwayat Laporan</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'schedule' ? 'active' : ''}`}
+            onClick={() => navigate('/weekly-service/schedule')}
+          >
+            <Calendar size={14} />
+            <span>Jadwal Mingguan</span>
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.35rem', borderRadius: '12px', overflowX: 'auto' }} className="hide-scrollbar">
-        <button 
-          onClick={() => navigate('/weekly-service/create')} 
-          style={{
-            flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-            background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-            color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-            border: 'none', transition: 'all 0.2s', minWidth: '90px'
-          }}
-        >
-          Input
-        </button>
-        <button 
-          onClick={() => navigate('/weekly-service/history')} 
-          style={{
-            flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-            background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-            color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-            border: 'none', transition: 'all 0.2s', minWidth: '90px'
-          }}
-        >
-          Riwayat
-        </button>
-        {!isMobile && (
-          <button 
-            onClick={() => navigate('/weekly-service/schedule')} 
-            style={{
-              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-              background: activeTab === 'schedule' ? 'var(--color-yellow-primary)' : 'transparent',
-              color: activeTab === 'schedule' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-              border: 'none', transition: 'all 0.2s', minWidth: '90px'
-            }}
-          >
-            Jadwal
-          </button>
-        )}
-      </div>
-
       {activeTab === 'create' && (
-        <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1rem 1.25rem' }}>
+        <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1.15rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
 
             {/* ── CARD 1: TOP SUMMARY & PROGRESS BAR ── */}

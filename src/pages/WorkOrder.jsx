@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showWarning, showError } from '../components/UniversalDialog';
 
 
 // Helper Angka Romawi untuk Bulan (1-12)
@@ -28,7 +29,13 @@ function getLoggedInUser() {
 export default function WorkOrder() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = tab || 'create';
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [workOrders, setWorkOrders] = useState([]);
@@ -189,13 +196,18 @@ export default function WorkOrder() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
+
     if (!selectedNoLambung) {
-      alert('Silakan pilih Nomor Lambung Unit!');
+      await showWarning('Silakan pilih Nomor Lambung Unit!');
       return;
     }
 
     if (!noUrut.trim()) {
-      alert('Silakan isi Nomor Urut WO (contoh: 01, 002)!');
+      await showWarning('Silakan isi Nomor Urut WO (contoh: 01, 002)!');
       return;
     }
 
@@ -217,7 +229,7 @@ export default function WorkOrder() {
         const { error } = await supabase.from('work_orders').update(payload).eq('id', editingId);
         if (error) {
           console.error('Update work_order error:', error);
-          alert('Gagal memperbarui Work Order. Pastikan tabel work_orders sudah dibuat di Supabase!\n\nDetail: ' + error.message);
+          await showError('Gagal memperbarui Work Order.\n\nDetail: ' + error.message);
           return;
         }
       } catch (err) {
@@ -239,13 +251,13 @@ export default function WorkOrder() {
       } : r));
 
       setEditingId(null);
-      alert(`Work Order ${formattedWoNumber} berhasil diperbarui!`);
+      await showSuccess(`Work Order ${formattedWoNumber} berhasil diperbarui!`);
     } else {
       try {
         const { error } = await supabase.from('work_orders').insert([payload]);
         if (error) {
           console.error('Insert work_order error:', error);
-          alert('Gagal menyimpan Work Order. Pastikan tabel work_orders sudah dibuat di Supabase!\n\nDetail: ' + error.message);
+          await showError('Gagal menyimpan Work Order.\n\nDetail: ' + error.message);
           return;
         }
       } catch (err) {
@@ -253,6 +265,7 @@ export default function WorkOrder() {
       }
       // Re-fetch to get accurate DB ID
       fetchWorkOrders();
+      await showSuccess(`Work Order ${formattedWoNumber} berhasil dibuat!`);
     }
 
     // Reset Form
@@ -267,7 +280,11 @@ export default function WorkOrder() {
     navigate('/dashboard');
   };
 
-  const handleStartEdit = (wo) => {
+  const handleStartEdit = async (wo) => {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     setEditingId(wo.id);
     setNoUrut(wo.noUrut || '');
     setSelectedNoLambung(wo.noLambung || '');
@@ -285,11 +302,17 @@ export default function WorkOrder() {
   };
 
   const handleDelete = async (id, nomor) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus Work Order "${nomor}"?`)) {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
+    const ok = await showConfirm(`Apakah Anda yakin ingin menghapus Work Order "${nomor}"?`, 'Konfirmasi Hapus WO');
+    if (ok) {
       try {
         await supabase.from('work_orders').delete().eq('id', id);
       } catch (_) {}
       setWorkOrders(prev => prev.filter(r => r.id !== id));
+      await showSuccess(`Work Order "${nomor}" berhasil dihapus.`);
     }
   };
 
@@ -297,56 +320,40 @@ export default function WorkOrder() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* Header Page Title + Tabs */}
-      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
-        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.2rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-          <ClipboardList size={22} style={{ color: 'var(--color-yellow-primary)' }} />
+      {/* Header Page Title + Tabs */}
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <ClipboardList size={20} style={{ color: 'var(--color-yellow-primary)' }} />
           Surat Perintah Kerja (Work Order)
         </h1>
-        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.65rem' }}>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
           Perencanaan & Penugasan Pekerjaan
         </p>
 
-        {isMobile && (
-          <div style={{
-            display: 'flex',
-            background: 'rgba(22, 25, 29, 0.95)',
-            padding: '0.3rem',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            gap: '0.3rem',
-            marginTop: '0.5rem',
-            overflowX: 'auto',
-            width: '100%'
-          }} className="hide-scrollbar">
-            <button 
-              onClick={() => navigate('/work-order/create')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Buat WO
-            </button>
-            <button 
-              onClick={() => navigate('/work-order/history')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Riwayat
-            </button>
-          </div>
-        )}
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/work-order/create')}
+          >
+            <PlusCircle size={14} />
+            <span>Buat WO Baru</span>
+          </button>
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/work-order/history')}
+          >
+            <List size={14} />
+            <span>Riwayat WO ({workOrders.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* ── TAB BUAT WORK ORDER ── */}
       {activeTab === 'create' && (
-        <div className="card no-print hide-scrollbar" style={{ flex: 1, overflowY: 'auto', maxWidth: '840px', margin: '0 auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1rem 1rem 85px 1rem' }}>
+        <div className="card no-print hide-scrollbar" style={{ flex: 1, overflowY: 'auto', width: '100%', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1.15rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             
             <div style={{

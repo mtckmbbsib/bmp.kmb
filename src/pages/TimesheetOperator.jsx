@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showWarning, showError, showSuccess } from '../components/UniversalDialog';
 import {   ClipboardList, Calendar, User, Truck, PlusCircle, Trash2, 
   Save, Clock, CheckCircle2, History, ChevronDown, ChevronUp, X 
 } from 'lucide-react';
@@ -40,14 +41,18 @@ const ACTIVITIES = [
 export default function TimesheetOperator() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = tab || 'create';
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
   
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [units, setUnits] = useState([]);
   
   // User info
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
   const operatorName = user?.name || user?.full_name || user?.username || 'Operator';
   const jabatan = (user?.jabatan || '').toLowerCase();
 
@@ -114,8 +119,12 @@ export default function TimesheetOperator() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     if (!unitNumber) {
-      alert("Silakan pilih No. Unit (MMU) terlebih dahulu.");
+      await showWarning("Silakan pilih No. Unit (MMU) terlebih dahulu.");
       return;
     }
     
@@ -138,7 +147,7 @@ export default function TimesheetOperator() {
     for (let i=0; i<finalActivities.length; i++) {
       const a = finalActivities[i];
       if (!a.startTime || !a.endTime || !a.activity) {
-        alert(`Mohon lengkapi Waktu dan Aktivitas pada baris ke-${i+1}.`);
+        await showWarning(`Mohon lengkapi Waktu dan Aktivitas pada baris ke-${i+1}.`);
         return;
       }
     }
@@ -176,7 +185,7 @@ export default function TimesheetOperator() {
       navigate('/dashboard');
 
     } catch (err) {
-      alert("Terjadi kesalahan saat menyimpan data: " + (err?.message || "Koneksi/Auth error"));
+      await showError("Terjadi kesalahan saat menyimpan data: " + (err?.message || "Koneksi/Auth error"));
       console.error(err);
     }
     setSubmitting(false);
@@ -184,70 +193,51 @@ export default function TimesheetOperator() {
 
   return (
     <div className="page-container" style={{ paddingBottom: isMobile ? '80px' : '20px' }}>
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
-        <div style={{ width: isMobile ? '100%' : 'auto', textAlign: isMobile ? 'center' : 'left' }}>
-          <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: '0.5rem' }}>
-            <ClipboardList size={22} style={{ color: 'var(--color-yellow-primary)' }} />
-            Time Sheet Operator (PA/UA)
-          </h1>
-          <div style={{ fontSize: '0.725rem', color: 'var(--color-silver)', marginTop: '0.15rem' }}>
-            Lembar Kerja Harian MMU / Unit
-          </div>
-        </div>
-      </div>
+      {/* Header */}
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <ClipboardList size={20} style={{ color: 'var(--color-yellow-primary)' }} />
+          Time Sheet Operator
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Lembar Kerja Harian & Pengisian Aktivitas MMU / Unit
+        </p>
 
-      {isMobile && (
-        <div style={{
-          display: 'flex',
-          background: 'rgba(22, 25, 29, 0.95)',
-          padding: '0.3rem',
-          borderRadius: '12px',
-          border: '1px solid var(--color-border)',
-          gap: '0.3rem',
-          marginBottom: '0.75rem',
-          overflowX: 'auto',
-          width: '100%'
-        }} className="hide-scrollbar">
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
           <button 
-            onClick={() => navigate('/timesheet/create')} 
-            style={{
-              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-              background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-              color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-              border: 'none', transition: 'all 0.2s', minWidth: '90px'
-            }}
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/timesheet/create')}
           >
-            Input
+            <PlusCircle size={14} />
+            <span>Input Time Sheet</span>
           </button>
+          
           <button 
-            onClick={() => navigate('/timesheet/history')} 
-            style={{
-              flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-              background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-              color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-              border: 'none', transition: 'all 0.2s', minWidth: '90px'
-            }}
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/timesheet/history')}
           >
-            Riwayat
+            <History size={14} />
+            <span>Riwayat Time Sheet</span>
           </button>
-          {!isMobile && !jabatan.includes('operator') && (
+
+          {!jabatan.includes('operator') && (
             <button 
-              onClick={() => navigate('/timesheet/report')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'report' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'report' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
+              type="button"
+              className={`tab-pill-btn ${activeTab === 'report' ? 'active' : ''}`}
+              onClick={() => navigate('/timesheet/report')}
             >
-              Laporan
+              <Clock size={14} />
+              <span>Laporan UA & PA</span>
             </button>
           )}
         </div>
-      )}
+      </div>
 
       {activeTab === 'create' && (
-        <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '1rem' : '1.25rem' }}>
+        <div className="card hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', width: '100%', padding: isMobile ? '0.75rem 0.75rem 85px 0.75rem' : '1.15rem' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%', animation: 'fadeIn 0.3s ease-out' }}>
             
             {/* Header info unit & operator */}

@@ -4,12 +4,14 @@ import {
 } from 'recharts';
 import { 
   AlertTriangle, Wrench, Calendar, CheckCircle2, Clock, ShieldAlert, Truck, Search, RefreshCw, Sparkles, Cpu, Activity,
-  LayoutDashboard, PlusCircle, ClipboardCheck, PenTool, UserPlus, LogOut, ChevronLeft, ChevronRight, Bell, X, TrendingUp, CalendarClock
+  LayoutDashboard, PlusCircle, ClipboardCheck, PenTool, UserPlus, LogOut, ChevronLeft, ChevronRight, Bell, X, TrendingUp, CalendarClock,
+  ShieldCheck, FileCheck, Edit, Save, AlertCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ProblemUaWidget from '../components/ProblemUaWidget';
 import SearchableSelect from '../components/SearchableSelect';
+import { showConfirm, showSuccess, showError } from '../components/UniversalDialog';
 
 
 // ── DATA STORE UNTUK DASHBOARD ──
@@ -49,8 +51,9 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
-    if (window.confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+  const handleLogout = async () => {
+    const ok = await showConfirm("Apakah Anda yakin ingin keluar dari sistem?", "Konfirmasi Keluar");
+    if (ok) {
       localStorage.removeItem('user');
       navigate('/login');
     }
@@ -95,6 +98,76 @@ export default function Dashboard() {
   const [selectedUnitFilter, setSelectedUnitFilter] = useState('All');
   const [selectedPartFilter, setSelectedPartFilter] = useState('All');
   const [chartUnitType, setChartUnitType] = useState('Pcs'); // Pcs or Liter
+
+  // Compliance Quick Update Modal State (Brake Test, Commissioning, Sertifikasi)
+  const [quickUpdateModalOpen, setQuickUpdateModalOpen] = useState(false);
+  const [quickUpdateUnit, setQuickUpdateUnit] = useState(null);
+  const [quickUpdateForm, setQuickUpdateForm] = useState({
+    brakeTest: '',
+    commissioning: '',
+    sertifikasi: '',
+    hmkm: '',
+    nextService: ''
+  });
+  const [quickUpdateSaving, setQuickUpdateSaving] = useState(false);
+
+  const handleOpenQuickUpdate = (unit) => {
+    setQuickUpdateUnit(unit);
+    setQuickUpdateForm({
+      brakeTest: unit.brakeTest === 'NA' ? '' : unit.brakeTest,
+      commissioning: unit.commissioning === 'NA' ? '' : unit.commissioning,
+      sertifikasi: unit.sertifikasi === 'NA' ? '' : unit.sertifikasi,
+      hmkm: unit.hmkm || '',
+      nextService: unit.nextService || ''
+    });
+    setQuickUpdateModalOpen(true);
+  };
+
+  const handleSaveQuickUpdate = async (e) => {
+    e.preventDefault();
+    if (!quickUpdateUnit) return;
+    setQuickUpdateSaving(true);
+    try {
+      const finalBrakeTest = quickUpdateForm.brakeTest ? quickUpdateForm.brakeTest : 'NA';
+      const finalCommissioning = quickUpdateForm.commissioning ? quickUpdateForm.commissioning : 'NA';
+      const finalSertifikasi = quickUpdateForm.sertifikasi ? quickUpdateForm.sertifikasi : 'NA';
+
+      const updatePayload = {
+        next_brake_test: finalBrakeTest,
+        next_commissioning: finalCommissioning,
+        next_sertifikasi: finalSertifikasi,
+        hm_km: Number(quickUpdateForm.hmkm) || 0
+      };
+
+      const { error } = await supabase.from('units').update(updatePayload).eq('id', quickUpdateUnit.id);
+      
+      if (error && error.code === 'PGRST204') {
+        await supabase.from('units').update({
+          nextBrakeTest: finalBrakeTest,
+          nextCommissioning: finalCommissioning,
+          nextSertifikasi: finalSertifikasi,
+          hmkm: Number(quickUpdateForm.hmkm) || 0
+        }).eq('id', quickUpdateUnit.id);
+      }
+
+      setUnits(prev => prev.map(u => u.id === quickUpdateUnit.id ? {
+        ...u,
+        brakeTest: finalBrakeTest,
+        commissioning: finalCommissioning,
+        sertifikasi: finalSertifikasi,
+        hmkm: Number(quickUpdateForm.hmkm) || u.hmkm
+      } : u));
+
+      setQuickUpdateModalOpen(false);
+      setQuickUpdateUnit(null);
+      await showSuccess(`Data kepatuhan & tanggal uji unit ${quickUpdateUnit.noLambung} berhasil diperbarui!`, 'Update Berhasil');
+    } catch (err) {
+      console.error('Error saving compliance dates:', err);
+      await showError('Gagal menyimpan update tanggal.', 'Gagal');
+    } finally {
+      setQuickUpdateSaving(false);
+    }
+  };
 
   // AI Simulation Settings (Default Rate Adjustment)
   const [simulatedDailyRateMultiplier, setSimulatedDailyRateMultiplier] = useState(1.0);
@@ -597,6 +670,52 @@ export default function Dashboard() {
   const overdueCount = processedUnits.filter(u => u.isServiceOverdue).length;
   const dueSoonCount = processedUnits.filter(u => u.isServiceDueSoon).length;
 
+  // Compliance Reminders: Brake Test, Commissioning, Sertifikasi (Mendekati Expired <= 7 hari atau Overdue)
+  const complianceReminders = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const list = [];
+
+    units.forEach(u => {
+      const checks = [
+        { type: 'Brake Test', dateStr: u.brakeTest, icon: '🛑', color: '#ffb74d' },
+        { type: 'Commissioning', dateStr: u.commissioning, icon: '📋', color: '#58a6ff' },
+        { type: 'Sertifikasi', dateStr: u.sertifikasi, icon: '🛡️', color: '#7ee787' }
+      ];
+
+      checks.forEach(c => {
+        if (c.dateStr && c.dateStr !== 'NA' && c.dateStr !== '-') {
+          const targetDate = new Date(c.dateStr);
+          if (!isNaN(targetDate.getTime())) {
+            const diffTime = targetDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Masukkan jika overdue (diffDays < 0) atau jatuh tempo dalam 7 hari
+            if (diffDays <= 7) {
+              list.push({
+                unit: u,
+                noLambung: u.noLambung,
+                jenisUnit: u.jenisUnit,
+                type: c.type,
+                dateStr: c.dateStr,
+                diffDays,
+                isOverdue: diffDays < 0,
+                isDueSoon: diffDays >= 0 && diffDays <= 7,
+                icon: c.icon,
+                color: c.color
+              });
+            }
+          }
+        }
+      });
+    });
+
+    return list.sort((a, b) => a.diffDays - b.diffDays);
+  }, [units]);
+
+  const complianceOverdueCount = useMemo(() => complianceReminders.filter(r => r.isOverdue).length, [complianceReminders]);
+  const complianceDueSoonCount = useMemo(() => complianceReminders.filter(r => r.isDueSoon).length, [complianceReminders]);
+
   // Chart Data by Category
   const chartData = useMemo(() => {
     const categories = Array.from(new Set(units.map(u => u.jenisUnit)));
@@ -745,7 +864,7 @@ export default function Dashboard() {
             </Link>
             <Link to="/timesheet" className="mobile-menu-card">
               <CalendarClock size={22} style={{ marginBottom: '0.2rem', color: '#4db6ac' }} />
-              <span>PA / UA</span>
+              <span>Time Sheet</span>
             </Link>
             {canManage && (
               <>
@@ -1076,7 +1195,23 @@ export default function Dashboard() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '0.2rem' }} className="hide-scrollbar">
                   
-                  {/* Item Notif 1: Weekly Service */}
+                  {/* Item Notif 1: Compliance (Brake Test, Commissioning, Sertifikasi) */}
+                  {complianceReminders.length > 0 && (
+                    <div style={{ padding: '0.75rem', background: complianceOverdueCount > 0 ? 'rgba(248, 81, 73, 0.1)' : 'rgba(255,193,7,0.08)', borderRadius: '8px', border: complianceOverdueCount > 0 ? '1px solid rgba(248, 81, 73, 0.35)' : '1px solid rgba(255,193,7,0.3)', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                      <ShieldCheck size={22} style={{ color: complianceOverdueCount > 0 ? '#ff7b72' : 'var(--color-yellow-primary)', flexShrink: 0, marginTop: '0.1rem' }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '0.85rem' }}>Pengingat Kepatuhan (Compliance)</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', marginTop: '0.15rem' }}>
+                          Terdapat {complianceReminders.length} unit dengan status Brake Test / Commissioning / Sertifikasi mendekati atau lewat jatuh tempo.
+                        </div>
+                        <Link to="/add-unit" onClick={() => setShowNotifModal(false)} style={{ fontSize: '0.725rem', color: 'var(--color-yellow-primary)', textDecoration: 'none', fontWeight: 'bold', marginTop: '0.35rem', display: 'inline-block' }}>
+                          Update Tanggal Kepatuhan →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Item Notif 2: Weekly Service */}
                   <div style={{ padding: '0.75rem', background: 'rgba(255,193,7,0.08)', borderRadius: '8px', border: '1px solid rgba(255,193,7,0.3)', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
                     <Calendar size={22} style={{ color: 'var(--color-yellow-primary)', flexShrink: 0, marginTop: '0.1rem' }} />
                     <div style={{ flex: 1 }}>
@@ -1090,7 +1225,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Item Notif 2: Belum P2H */}
+                  {/* Item Notif 3: Belum P2H */}
                   <div style={{ padding: '0.75rem', background: 'rgba(255,82,82,0.08)', borderRadius: '8px', border: '1px solid rgba(255,82,82,0.3)', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
                     <AlertTriangle size={22} style={{ color: '#ff8a80', flexShrink: 0, marginTop: '0.1rem' }} />
                     <div style={{ flex: 1 }}>
@@ -1127,10 +1262,10 @@ export default function Dashboard() {
           {/* Welcome Banner di Atas Judul Dashboard */}
           <div style={{
             flexShrink: 0,
-            marginBottom: '0.85rem',
-            padding: '0.65rem 1rem',
-            background: 'linear-gradient(90deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.03) 100%)',
-            borderLeft: '4px solid var(--color-yellow-primary)',
+            marginBottom: '0.65rem',
+            padding: '0.5rem 0.85rem',
+            background: 'linear-gradient(90deg, rgba(229, 165, 10, 0.12) 0%, rgba(22, 27, 34, 0.6) 100%)',
+            borderLeft: '3px solid var(--color-yellow-primary)',
             borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
@@ -1138,13 +1273,13 @@ export default function Dashboard() {
             flexWrap: 'wrap',
             gap: '0.5rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>👋</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>👋</span>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-yellow-primary)', lineHeight: '1.2' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--color-yellow-primary)', lineHeight: '1.2' }}>
                   Selamat Datang, {userName}!
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-silver)', marginTop: '0.1rem' }}>
+                <div style={{ fontSize: '0.725rem', color: 'var(--color-silver)', marginTop: '0.1rem' }}>
                   Anda saat ini terhubung sebagai <strong style={{ color: '#ffffff' }}>{userRole}</strong>.
                 </div>
               </div>
@@ -1152,80 +1287,80 @@ export default function Dashboard() {
           </div>
 
           {/* Header Page */}
-          <div style={{ flexShrink: 0, marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ flexShrink: 0, marginBottom: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.3rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h1 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '700' }}>
                 Dashboard Maintenance & Monitoring Service
               </h1>
-              <p style={{ fontSize: '0.825rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-silver)', margin: '0.15rem 0 0 0' }}>
                 Perkiraan Tanggal Service Terdekat (Target HM 250, 500, 750, 1000) & Riwayat Perbaikan Part.
               </p>
             </div>
-            <button className="btn btn-secondary" onClick={fetchDashboardData} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', height: '34px' }}>
-              <RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh Data
+            <button className="btn btn-secondary" onClick={fetchDashboardData} style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', height: '30px' }}>
+              <RefreshCw size={13} className={loading ? 'spin' : ''} /> Refresh Data
             </button>
           </div>
 
           {/* Desktop Tabs Navigation */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem', overflowX: 'auto', flexShrink: 0, minHeight: '45px' }} className="hide-scrollbar">
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.85rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.4rem', overflowX: 'auto', flexShrink: 0 }} className="hide-scrollbar">
             <button
               onClick={() => setDesktopTab('overview')}
               style={{
-                background: desktopTab === 'overview' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.05)',
+                background: desktopTab === 'overview' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.04)',
                 color: desktopTab === 'overview' ? '#111' : 'var(--color-silver)',
                 border: 'none',
-                padding: '0.5rem 1rem',
+                padding: '0.35rem 0.75rem',
                 borderRadius: '6px',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
+                fontWeight: '600',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.35rem',
                 transition: 'all 0.2s'
               }}
             >
-              <LayoutDashboard size={16} />
+              <LayoutDashboard size={14} />
               Ringkasan & KPI
             </button>
             <button
               onClick={() => setDesktopTab('monitoring')}
               style={{
-                background: desktopTab === 'monitoring' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.05)',
+                background: desktopTab === 'monitoring' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.04)',
                 color: desktopTab === 'monitoring' ? '#111' : 'var(--color-silver)',
                 border: 'none',
-                padding: '0.5rem 1rem',
+                padding: '0.35rem 0.75rem',
                 borderRadius: '6px',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
+                fontWeight: '600',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.35rem',
                 transition: 'all 0.2s'
               }}
             >
-              <Clock size={16} />
+              <Clock size={14} />
               Monitoring & Jadwal
             </button>
             <button
               onClick={() => setDesktopTab('analytics')}
               style={{
-                background: desktopTab === 'analytics' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.05)',
+                background: desktopTab === 'analytics' ? 'var(--color-yellow-primary)' : 'rgba(255,255,255,0.04)',
                 color: desktopTab === 'analytics' ? '#111' : 'var(--color-silver)',
                 border: 'none',
-                padding: '0.5rem 1rem',
+                padding: '0.35rem 0.75rem',
                 borderRadius: '6px',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
+                fontWeight: '600',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.35rem',
                 transition: 'all 0.2s'
               }}
             >
-              <Activity size={16} />
+              <Activity size={14} />
               Analisis & Riwayat
             </button>
           </div>
@@ -1233,141 +1368,235 @@ export default function Dashboard() {
           {desktopTab === 'overview' && (
             <>
               {/* ── 1. KPI WIDGET CARDS ── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
-                <div className="card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid var(--color-yellow-primary)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ padding: '0.65rem', borderRadius: '8px', backgroundColor: 'rgba(255, 193, 7, 0.15)', color: 'var(--color-yellow-primary)' }}>
-                    <Truck size={24} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                <div className="card" style={{ padding: '0.75rem 0.85rem', borderLeft: '3px solid var(--color-yellow-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(255, 193, 7, 0.15)', color: 'var(--color-yellow-primary)' }}>
+                    <Truck size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', fontWeight: '500' }}>TOTAL SPIP / UNIT</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ffffff' }}>{totalUnits} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
+                    <div style={{ fontSize: '0.675rem', color: 'var(--color-silver)', fontWeight: '500' }}>TOTAL SPIP / UNIT</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ffffff' }}>{totalUnits} <span style={{ fontSize: '0.725rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid #4caf50', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ padding: '0.65rem', borderRadius: '8px', backgroundColor: 'rgba(76, 175, 80, 0.15)', color: '#81c784' }}>
-                    <CheckCircle2 size={24} />
+                <div className="card" style={{ padding: '0.75rem 0.85rem', borderLeft: '3px solid #4caf50', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(76, 175, 80, 0.15)', color: '#81c784' }}>
+                    <CheckCircle2 size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', fontWeight: '500' }}>UNIT AKTIF & READY</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#81c784' }}>{activeCount} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
+                    <div style={{ fontSize: '0.675rem', color: 'var(--color-silver)', fontWeight: '500' }}>UNIT AKTIF & READY</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#81c784' }}>{activeCount} <span style={{ fontSize: '0.725rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid #ff5252', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ padding: '0.65rem', borderRadius: '8px', backgroundColor: 'rgba(255, 82, 82, 0.15)', color: '#ff8a80' }}>
-                    <AlertTriangle size={24} />
+                <div className="card" style={{ padding: '0.75rem 0.85rem', borderLeft: '3px solid #ff5252', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(255, 82, 82, 0.15)', color: '#ff8a80' }}>
+                    <AlertTriangle size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', fontWeight: '500' }}>SERVIS OVERDUE</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ff8a80' }}>{overdueCount} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
+                    <div style={{ fontSize: '0.675rem', color: 'var(--color-silver)', fontWeight: '500' }}>SERVIS OVERDUE</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ff8a80' }}>{overdueCount} <span style={{ fontSize: '0.725rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '0.85rem 1rem', borderLeft: '4px solid #ffb74d', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ padding: '0.65rem', borderRadius: '8px', backgroundColor: 'rgba(255, 183, 77, 0.15)', color: '#ffb74d' }}>
-                    <Clock size={24} />
+                <div className="card" style={{ padding: '0.75rem 0.85rem', borderLeft: '3px solid #ffb74d', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(255, 183, 77, 0.15)', color: '#ffb74d' }}>
+                    <Clock size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', fontWeight: '500' }}>PM DUE SOON (&lt;30 HM)</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ffb74d' }}>{dueSoonCount} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
+                    <div style={{ fontSize: '0.675rem', color: 'var(--color-silver)', fontWeight: '500' }}>PM DUE SOON (&lt;30 HM)</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ffb74d' }}>{dueSoonCount} <span style={{ fontSize: '0.725rem', fontWeight: 'normal', color: 'var(--color-silver)' }}>Unit</span></div>
                   </div>
                 </div>
               </div>
-              <div className="card mb-4" style={{ 
-            padding: '1rem 1.25rem', 
-            background: todayWeeklySchedules.length > 0 
-              ? 'linear-gradient(135deg, rgba(255, 193, 7, 0.12) 0%, rgba(30, 34, 42, 0.95) 100%)' 
-              : 'linear-gradient(135deg, rgba(40, 44, 52, 0.6) 0%, rgba(20, 24, 30, 0.8) 100%)',
-            border: todayWeeklySchedules.length > 0 ? '1px solid rgba(255, 193, 7, 0.4)' : '1px solid var(--color-border)',
-            borderRadius: '8px',
-            boxShadow: todayWeeklySchedules.length > 0 ? '0 4px 15px rgba(255, 193, 7, 0.08)' : 'none'
-          }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: todayWeeklySchedules.length > 0 ? '0.75rem' : '0', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ 
-                padding: '0.55rem', 
-                borderRadius: '8px', 
-                backgroundColor: todayWeeklySchedules.length > 0 ? 'rgba(255, 193, 7, 0.2)' : 'rgba(255,255,255,0.05)',
-                color: todayWeeklySchedules.length > 0 ? 'var(--color-yellow-primary)' : 'var(--color-silver)'
-              }}>
-                <Calendar size={22} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--color-yellow-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  🔔 Pengingat Notifikasi: Jadwal Weekly Service Hari Ini
-                  {todayWeeklySchedules.length > 0 && (
-                    <span style={{ 
-                      padding: '0.15rem 0.55rem', 
-                      borderRadius: '12px', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 'bold',
-                      backgroundColor: todayWeeklySchedules.some(s => !s.isCompleted) ? 'rgba(255, 193, 7, 0.25)' : 'rgba(76, 175, 80, 0.25)', 
-                      color: todayWeeklySchedules.some(s => !s.isCompleted) ? '#ffffff' : '#81c784',
-                      border: todayWeeklySchedules.some(s => !s.isCompleted) ? '1px solid var(--color-yellow-primary)' : '1px solid #81c784'
-                    }}>
-                      {todayWeeklySchedules.filter(s => !s.isCompleted).length > 0 
-                        ? `${todayWeeklySchedules.filter(s => !s.isCompleted).length} Unit Menunggu Service`
-                        : 'Semua Unit Selesai ✓'}
-                    </span>
-                  )}
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
-                  {todayWeeklySchedules.length > 0 
-                    ? `Daftar unit yang dijadwalkan pemeliharaan rutin pada hari ${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]}:`
-                    : `Belum ada unit yang dijadwalkan pemeliharaan rutin Weekly Service pada hari ${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]}.`}
-                </p>
-              </div>
-            </div>
-
-            <Link 
-              to="/weekly-service" 
-              className="btn btn-secondary" 
-              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: 'var(--color-yellow-primary)', color: 'var(--color-yellow-primary)' }}
-            >
-              <Wrench size={14} /> Kelola Weekly Service
-            </Link>
-          </div>
-
-          {todayWeeklySchedules.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-              {todayWeeklySchedules.map((item, idx) => (
-                <div key={item.id || idx} style={{
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '6px',
-                  backgroundColor: item.isCompleted ? 'rgba(76, 175, 80, 0.08)' : 'rgba(255, 193, 7, 0.08)',
-                  border: item.isCompleted ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid rgba(255, 193, 7, 0.3)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+              {/* ── 1.1 COMPLIANCE REMINDERS: BRAKE TEST, COMMISSIONING & SERTIFIKASI (Tampil Hanya Jika Ada Unit Yang Jatuh Tempo / Overdue) ── */}
+              {complianceReminders.length > 0 && (
+                <div className="card mb-4" style={{ 
+                  padding: '1rem 1.25rem', 
+                  background: complianceOverdueCount > 0 
+                    ? 'linear-gradient(135deg, rgba(248, 81, 73, 0.14) 0%, rgba(22, 27, 34, 0.95) 100%)' 
+                    : 'linear-gradient(135deg, rgba(229, 165, 10, 0.14) 0%, rgba(22, 27, 34, 0.95) 100%)',
+                  border: complianceOverdueCount > 0 ? '1px solid rgba(248, 81, 73, 0.4)' : '1px solid rgba(229, 165, 10, 0.4)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#ffffff' }}>{item.noLambung}</span>
-                      <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--color-silver-light)' }}>
-                        {item.jenisUnit}
-                      </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ 
+                        padding: '0.55rem', 
+                        borderRadius: '8px', 
+                        backgroundColor: complianceOverdueCount > 0 ? 'rgba(248, 81, 73, 0.2)' : 'rgba(229, 165, 10, 0.2)',
+                        color: complianceOverdueCount > 0 ? '#ff7b72' : '#ffd54f'
+                      }}>
+                        <ShieldCheck size={22} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1rem', margin: 0, color: complianceOverdueCount > 0 ? '#ff7b72' : '#ffd54f', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          🛡️ Pengingat Kepatuhan: Brake Test, Commissioning & Sertifikasi
+                          <span style={{ 
+                            padding: '0.15rem 0.55rem', 
+                            borderRadius: '12px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 'bold',
+                            backgroundColor: complianceOverdueCount > 0 ? 'rgba(248, 81, 73, 0.25)' : 'rgba(229, 165, 10, 0.25)', 
+                            color: '#ffffff',
+                            border: `1px solid ${complianceOverdueCount > 0 ? '#ff7b72' : '#ffd54f'}`
+                          }}>
+                            {complianceOverdueCount > 0 ? `🚨 ${complianceOverdueCount} Unit Lewat Tempo` : `⚠️ ${complianceDueSoonCount} Unit Segera Jatuh Tempo`}
+                          </span>
+                        </h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
+                          Daftar unit yang telah lewat tempo atau jatuh tempo dalam 7 hari ke depan:
+                        </p>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', marginTop: '0.2rem' }}>
-                      📍 {item.lokasi} • 🕒 {item.shift}
-                    </div>
+
+                    <Link 
+                      to="/add-unit" 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: 'var(--color-yellow-primary)', color: 'var(--color-yellow-primary)' }}
+                    >
+                      <Edit size={14} /> Kelola SPIP & Tanggal Uji
+                    </Link>
                   </div>
-                  <div>
-                    {item.isCompleted ? (
-                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#81c784', padding: '0.25rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(76, 175, 80, 0.15)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
-                        ✓ Selesai
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#ffd54f', padding: '0.25rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(255, 193, 7, 0.15)', border: '1px solid rgba(255, 193, 7, 0.3)' }}>
-                        ⏳ Menunggu Service
-                      </span>
-                    )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                    {complianceReminders.map((item, idx) => (
+                      <div key={idx} style={{
+                        padding: '0.7rem 0.85rem',
+                        borderRadius: '6px',
+                        backgroundColor: item.isOverdue ? 'rgba(248, 81, 73, 0.1)' : 'rgba(229, 165, 10, 0.1)',
+                        border: item.isOverdue ? '1px solid rgba(248, 81, 73, 0.35)' : '1px solid rgba(229, 165, 10, 0.35)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '0.925rem', color: 'var(--color-yellow-primary)' }}>{item.noLambung}</span>
+                            <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--color-silver-light)' }}>
+                              {item.jenisUnit}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.775rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span>{item.icon}</span>
+                            <strong style={{ color: item.color }}>{item.type}:</strong> 
+                            <span style={{ color: '#ffffff' }}>{item.dateStr}</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: item.isOverdue ? '#ff7b72' : '#ffd54f', marginTop: '0.15rem', fontWeight: '600' }}>
+                            {item.isOverdue 
+                              ? `🚨 Lewat ${Math.abs(item.diffDays)} hari!` 
+                              : `⏳ Jatuh tempo ${item.diffDays === 0 ? 'HARI INI' : `${item.diffDays} hari lagi`}`}
+                          </div>
+                        </div>
+
+                        <div>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                            onClick={() => handleOpenQuickUpdate(item.unit)}
+                          >
+                            <Edit size={12} />
+                            <span>Update</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
+
+              {/* ── 1.2 WEEKLY SERVICE REMINDERS (Tampil Hanya Jika Ada Jadwal Hari Ini) ── */}
+              {todayWeeklySchedules.length > 0 && (
+                <div className="card mb-4" style={{ 
+                  padding: '1rem 1.25rem', 
+                  background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.12) 0%, rgba(30, 34, 42, 0.95) 100%)',
+                  border: '1px solid rgba(255, 193, 7, 0.4)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 15px rgba(255, 193, 7, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ 
+                        padding: '0.55rem', 
+                        borderRadius: '8px', 
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        color: 'var(--color-yellow-primary)'
+                      }}>
+                        <Calendar size={22} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--color-yellow-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          🔔 Pengingat Notifikasi: Jadwal Weekly Service Hari Ini
+                          <span style={{ 
+                            padding: '0.15rem 0.55rem', 
+                            borderRadius: '12px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 'bold',
+                            backgroundColor: todayWeeklySchedules.some(s => !s.isCompleted) ? 'rgba(255, 193, 7, 0.25)' : 'rgba(76, 175, 80, 0.25)', 
+                            color: todayWeeklySchedules.some(s => !s.isCompleted) ? '#ffffff' : '#81c784',
+                            border: todayWeeklySchedules.some(s => !s.isCompleted) ? '1px solid var(--color-yellow-primary)' : '1px solid #81c784'
+                          }}>
+                            {todayWeeklySchedules.filter(s => !s.isCompleted).length > 0 
+                              ? `${todayWeeklySchedules.filter(s => !s.isCompleted).length} Unit Menunggu Service`
+                              : 'Semua Unit Selesai ✓'}
+                          </span>
+                        </h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--color-silver)', margin: '0.2rem 0 0 0' }}>
+                          Daftar unit yang dijadwalkan pemeliharaan rutin pada hari {['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]}:
+                        </p>
+                      </div>
+                    </div>
+
+                    <Link 
+                      to="/weekly-service" 
+                      className="btn btn-secondary" 
+                      style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: 'var(--color-yellow-primary)', color: 'var(--color-yellow-primary)' }}
+                    >
+                      <Wrench size={14} /> Kelola Weekly Service
+                    </Link>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                    {todayWeeklySchedules.map((item, idx) => (
+                      <div key={item.id || idx} style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '6px',
+                        backgroundColor: item.isCompleted ? 'rgba(76, 175, 80, 0.08)' : 'rgba(255, 193, 7, 0.08)',
+                        border: item.isCompleted ? '1px solid rgba(76, 175, 80, 0.3)' : '1px solid rgba(255, 193, 7, 0.3)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#ffffff' }}>{item.noLambung}</span>
+                            <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--color-silver-light)' }}>
+                              {item.jenisUnit}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-silver)', marginTop: '0.2rem' }}>
+                            📍 {item.lokasi} • 🕒 {item.shift}
+                          </div>
+                        </div>
+                        <div>
+                          {item.isCompleted ? (
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#81c784', padding: '0.25rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(76, 175, 80, 0.15)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
+                              ✓ Selesai
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#ffd54f', padding: '0.25rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(255, 193, 7, 0.15)', border: '1px solid rgba(255, 193, 7, 0.3)' }}>
+                              ⏳ Menunggu Service
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             {/* ── UA WIDGET ── */}
             <ProblemUaWidget />
@@ -2049,6 +2278,132 @@ export default function Dashboard() {
         </>
       )}
         </>
+      )}
+
+      {/* ── POP-UP MODAL CEPAT: UPDATE TANGGAL BRAKE TEST, COMMISSIONING & SERTIFIKASI ── */}
+      {quickUpdateModalOpen && quickUpdateUnit && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div className="card" style={{
+            maxWidth: '520px',
+            width: '100%',
+            backgroundColor: '#161b22',
+            border: '1px solid var(--color-border)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--color-yellow-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ShieldCheck size={20} /> Update Tanggal Kepatuhan
+                </h3>
+                <div style={{ fontSize: '0.775rem', color: 'var(--color-silver)', marginTop: '0.2rem' }}>
+                  Unit: <strong style={{ color: '#ffffff' }}>{quickUpdateUnit.noLambung}</strong> ({quickUpdateUnit.jenisUnit} - {quickUpdateUnit.merk})
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setQuickUpdateModalOpen(false); setQuickUpdateUnit(null); }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-silver)', cursor: 'pointer', padding: '0.2rem' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div className="input-group mb-0">
+                <label style={{ fontSize: '0.8rem', color: '#ffd54f', fontWeight: '600' }}>
+                  🛑 Next Brake Test
+                </label>
+                <input
+                  type="date"
+                  className="input-field"
+                  style={{ colorScheme: 'dark', height: '36px' }}
+                  value={quickUpdateForm.brakeTest}
+                  onChange={e => setQuickUpdateForm({ ...quickUpdateForm, brakeTest: e.target.value })}
+                  onClick={e => e.target.showPicker && e.target.showPicker()}
+                />
+              </div>
+
+              <div className="input-group mb-0">
+                <label style={{ fontSize: '0.8rem', color: '#58a6ff', fontWeight: '600' }}>
+                  📋 Next Commissioning
+                </label>
+                <input
+                  type="date"
+                  className="input-field"
+                  style={{ colorScheme: 'dark', height: '36px' }}
+                  value={quickUpdateForm.commissioning}
+                  onChange={e => setQuickUpdateForm({ ...quickUpdateForm, commissioning: e.target.value })}
+                  onClick={e => e.target.showPicker && e.target.showPicker()}
+                />
+              </div>
+
+              <div className="input-group mb-0">
+                <label style={{ fontSize: '0.8rem', color: '#7ee787', fontWeight: '600' }}>
+                  🛡️ Next Sertifikasi
+                </label>
+                <input
+                  type="date"
+                  className="input-field"
+                  style={{ colorScheme: 'dark', height: '36px' }}
+                  value={quickUpdateForm.sertifikasi}
+                  onChange={e => setQuickUpdateForm({ ...quickUpdateForm, sertifikasi: e.target.value })}
+                  onClick={e => e.target.showPicker && e.target.showPicker()}
+                />
+              </div>
+
+              <div className="input-group mb-0">
+                <label style={{ fontSize: '0.8rem', color: 'var(--color-silver-light)', fontWeight: '500' }}>
+                  ⚙️ Update HM / KM Terkini (Opsional)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="input-field"
+                  style={{ height: '36px' }}
+                  value={quickUpdateForm.hmkm}
+                  onChange={e => setQuickUpdateForm({ ...quickUpdateForm, hmkm: e.target.value })}
+                  placeholder="HM Terkini..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => { setQuickUpdateModalOpen(false); setQuickUpdateUnit(null); }}
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={quickUpdateSaving}
+                  style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Save size={16} />
+                  <span>{quickUpdateSaving ? 'Menyimpan...' : 'Simpan Tanggal'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

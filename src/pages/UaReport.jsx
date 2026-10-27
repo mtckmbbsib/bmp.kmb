@@ -5,6 +5,7 @@ import { Download, Calendar as CalendarIcon, Filter, Image as ImageIcon } from '
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import SearchableSelect from '../components/SearchableSelect';
+import { showError } from '../components/UniversalDialog';
 
 
 const PRODUCTIVE_ACTIVITIES = [
@@ -246,7 +247,7 @@ export default function UaReport() {
 
     } catch (err) {
       console.error(err);
-      alert("Gagal memuat data laporan UA.");
+      await showError("Gagal memuat data laporan UA.");
     }
     setLoading(false);
   };
@@ -301,7 +302,7 @@ export default function UaReport() {
       link.click();
     } catch (err) {
       console.error("Gagal mendownload grafik:", err);
-      alert("Gagal mendownload grafik. Pastikan halaman termuat dengan baik.");
+      await showError("Gagal mendownload grafik. Pastikan halaman termuat dengan baik.");
     }
   };
 
@@ -364,37 +365,37 @@ export default function UaReport() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Grafik Problem */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--color-yellow-primary)' }}>PROBLEM UA (Jam)</h2>
-              <button onClick={downloadChartJpg} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ImageIcon size={14} /> Download JPG
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--color-yellow-primary)', fontWeight: '600' }}>PROBLEM UA (Jam)</h2>
+              <button onClick={downloadChartJpg} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <ImageIcon size={13} /> Download JPG
               </button>
             </div>
 
-            <div ref={chartRef} style={{ width: '100%', overflowX: 'auto', padding: '1rem 0', background: '#1a1d21' }}>
-              <div style={{ minWidth: isMobile ? '600px' : '100%', height: '400px' }}>
+            <div ref={chartRef} style={{ width: '100%', overflowX: 'auto', padding: '0.5rem 0', background: 'transparent' }}>
+              <div style={{ minWidth: isMobile ? '600px' : '100%', height: '340px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={problemData} margin={{ top: 20, right: 30, left: 0, bottom: 90 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                  <BarChart data={problemData} margin={{ top: 20, right: 25, left: 0, bottom: 85 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,246,252,0.06)" vertical={false} />
                     <XAxis 
                       dataKey="name" 
                       stroke="var(--color-silver)" 
                       fontSize={11} 
                       interval={0} 
-                      angle={-45} 
+                      angle={-40} 
                       textAnchor="end" 
-                      height={90}
+                      height={85}
                     />
                     <YAxis stroke="var(--color-silver)" fontSize={11} />
                     <Tooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      contentStyle={{ background: '#2a2d32', border: '1px solid var(--color-border)', borderRadius: '8px', color: '#fff' }}
+                      cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                      contentStyle={{ background: '#1c2128', border: '1px solid var(--color-border)', borderRadius: '8px', color: '#fff', fontSize: '0.8rem' }}
                       formatter={(value) => [`${value} Jam`, 'Total Waktu']}
                     />
-                    <Bar dataKey="hours" fill="#024bba" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                    <Bar dataKey="hours" fill="#1f6feb" radius={[4, 4, 0, 0]} maxBarSize={45}>
                       {problemData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill="#024bba" />
+                        <Cell key={`cell-${index}`} fill="#238636" />
                       ))}
                       <LabelList dataKey="hours" content={renderCustomBarLabel} />
                     </Bar>
@@ -403,30 +404,30 @@ export default function UaReport() {
               </div>
             </div>
             {problemData.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-silver)' }}>
+              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-silver)', fontSize: '0.8rem' }}>
                 Tidak ada data problem/standby di bulan ini.
               </div>
             )}
           </div>
 
           {/* Tabel UA */}
-          <div className="card" style={{ padding: '1.5rem', overflowX: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--color-yellow-primary)' }}>Tabel Persentase UA</h2>
-              <button onClick={downloadExcel} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Download size={14} /> Download Excel
+          <div className="card" style={{ padding: '1.25rem', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h2 style={{ fontSize: '1rem', margin: 0, color: 'var(--color-yellow-primary)', fontWeight: '600' }}>Tabel Persentase UA & PA</h2>
+              <button onClick={downloadExcel} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Download size={13} /> Download Excel
               </button>
             </div>
 
             <div className="table-responsive hide-scrollbar">
-              <table className="table" style={{ width: '100%', fontSize: '0.85rem' }}>
+              <table className="table" style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th rowSpan={2} style={{ background: '#b7401c', color: '#fff', textAlign: 'center', borderRight: '1px solid #fff', verticalAlign: 'middle' }}>Date</th>
+                    <th rowSpan={2} style={{ background: '#21262d', color: '#f0f6fc', textAlign: 'center', borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', verticalAlign: 'middle', padding: '0.5rem' }}>Date</th>
                     {unitList.map(u => {
                       const isPaTarget = unitTypes[u] === 'MMU Truck' || unitTypes[u] === 'Anfo Truck';
                       return (
-                        <th key={u} colSpan={isPaTarget ? 2 : 1} style={{ background: '#e1a613', color: '#fff', textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.1)' }}>
+                        <th key={u} colSpan={isPaTarget ? 2 : 1} style={{ background: '#161b22', color: 'var(--color-yellow-primary)', textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '0.5rem', fontWeight: '600' }}>
                           {u}
                         </th>
                       )
@@ -438,32 +439,32 @@ export default function UaReport() {
                       if (isPaTarget) {
                         return (
                           <React.Fragment key={`${u}-sub`}>
-                            <th style={{ background: '#eab839', color: '#fff', textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.1)' }}>UA</th>
-                            <th style={{ background: '#d6a32a', color: '#fff', textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.1)' }}>PA</th>
+                            <th style={{ background: '#1f242c', color: '#58a6ff', textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}>UA</th>
+                            <th style={{ background: '#1f242c', color: 'var(--color-yellow-primary)', textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}>PA</th>
                           </React.Fragment>
                         );
                       }
                       return (
-                        <th key={`${u}-sub`} style={{ background: '#eab839', color: '#fff', textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.1)' }}>UA</th>
+                        <th key={`${u}-sub`} style={{ background: '#1f242c', color: '#58a6ff', textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}>UA</th>
                       );
                     })}
                   </tr>
                 </thead>
                 <tbody>
                   {uaData.map((row, idx) => (
-                    <tr key={idx} style={{ background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.2)' }}>
-                      <td style={{ fontWeight: 'bold', color: 'var(--color-silver-light)', borderRight: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                    <tr key={idx} style={{ background: idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                      <td style={{ fontWeight: '600', color: 'var(--color-silver-light)', borderRight: '1px solid var(--color-border)', textAlign: 'center', padding: '0.4rem 0.5rem' }}>
                         {row.date}
                       </td>
                       {unitList.map(u => {
                         const isPaTarget = unitTypes[u] === 'MMU Truck' || unitTypes[u] === 'Anfo Truck';
                         return (
                           <React.Fragment key={`${row.date}-${u}`}>
-                            <td style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
+                            <td style={{ textAlign: 'center', borderLeft: '1px solid var(--color-border-subtle)', padding: '0.4rem 0.5rem' }}>
                               {row[`${u}_UA`]}%
                             </td>
                             {isPaTarget && (
-                              <td style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.05)', color: 'var(--color-yellow-primary)' }}>
+                              <td style={{ textAlign: 'center', borderLeft: '1px solid var(--color-border-subtle)', color: 'var(--color-yellow-primary)', padding: '0.4rem 0.5rem' }}>
                                 {row[`${u}_PA`]}%
                               </td>
                             )}
@@ -473,8 +474,8 @@ export default function UaReport() {
                     </tr>
                   ))}
                   {/* AVERAGE ROW */}
-                  <tr style={{ background: 'var(--color-yellow-primary)', color: '#000', fontWeight: 'bold' }}>
-                    <td style={{ borderRight: '1px solid rgba(0,0,0,0.2)', textAlign: 'center' }}>AVERAGE</td>
+                  <tr style={{ background: 'rgba(229, 165, 10, 0.15)', color: '#ffffff', fontWeight: 'bold', borderTop: '2px solid var(--color-yellow-primary)' }}>
+                    <td style={{ borderRight: '1px solid var(--color-border)', textAlign: 'center', color: 'var(--color-yellow-primary)', padding: '0.5rem' }}>AVERAGE</td>
                     {unitList.map(u => {
                       const isPaTarget = unitTypes[u] === 'MMU Truck' || unitTypes[u] === 'Anfo Truck';
                       return (

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SearchableSelect from '../components/SearchableSelect';
+import { showWarning, showSuccess, showError, showConfirm } from '../components/UniversalDialog';
 
 
 // ── UNIFIED OPERATOR READINESS SECTION (Light Vehicle Standard) ──
@@ -622,8 +623,15 @@ const DUMP_TRUCK_P2H_SECTIONS = [
 
 export default function P2hService() {
   const { tab } = useParams();
-  const activeTab = tab || 'create';
   const navigate = useNavigate();
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userSite = (user?.site || user?.lokasi || '').toLowerCase();
+  const isBalikpapan = userSite === 'balikpapan' || userSite.includes('balikpapan');
+
+  const activeTab = tab || (isBalikpapan ? 'history' : 'create');
+
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [previewReport, setPreviewReport] = useState(null);
   const [reports, setReports] = useState([]);
@@ -830,6 +838,10 @@ export default function P2hService() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     if (!selectedJenisUnit) return;
     if (isHmKmInvalid) {
       setModalNotice(`HM / KM tidak boleh lebih kecil dari HM / KM kemarin (${lastHmKm.toLocaleString('id-ID')})!`);
@@ -899,6 +911,10 @@ export default function P2hService() {
   };
 
   const handleApproveP2h = async (reportId, action, reason) => {
+    if (isBalikpapan) {
+      await showWarning('Akun Balikpapan hanya memiliki akses monitoring (Read Only).');
+      return;
+    }
     try {
       const report = reports.find(r => r.id === reportId);
       if (!report) return;
@@ -999,68 +1015,55 @@ export default function P2hService() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* ── HEADER HALAMAN P2H ── */}
-      <div style={{ flexShrink: 0, marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem', width: '100%' }}>
-          <div style={{ width: '100%', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <ClipboardCheck size={22} style={{ color: 'var(--color-yellow-primary)' }} />
-              {activeTab === 'create' ? 'Input P2H Harian' : 'P2H (Pemeriksaan Harian)'}
-            </h1>
-            <div style={{ fontSize: '0.725rem', color: 'var(--color-silver)', marginTop: '0.15rem' }}>
-              {activeTab === 'create' 
-                ? 'Isi formulir pemeriksaan harian kondisi unit' 
-                : 'Daftar verifikasi pending & riwayat pemeriksaan unit'}
-            </div>
-          </div>
+      <div className="no-print" style={{ flexShrink: 0, marginBottom: '0.65rem' }}>
+        <h1 className="mb-1" style={{ textAlign: 'center', fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <ClipboardCheck size={20} style={{ color: 'var(--color-yellow-primary)' }} />
+          Prestart P2H
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: '0.725rem', color: 'var(--color-silver)', marginBottom: '0.5rem' }}>
+          Pemeriksaan Kondisi & Kesiapan Operasional Unit
+        </p>
 
+        {/* Universal Segmented Tab Pills */}
+        <div className="tab-pill-container">
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => navigate('/p2h/create')}
+          >
+            <PlusCircle size={14} />
+            <span>Input P2H</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => navigate('/p2h/pending')}
+          >
+            <Clock size={14} />
+            <span>Pending P2H</span>
+            {pendingReports.length > 0 && (
+              <span style={{ 
+                background: activeTab === 'pending' ? '#0a0c10' : 'rgba(229,165,10,0.2)', 
+                color: activeTab === 'pending' ? '#ffffff' : 'var(--color-yellow-primary)',
+                padding: '0.05rem 0.35rem', 
+                borderRadius: '10px', 
+                fontSize: '0.65rem' 
+              }}>
+                {pendingReports.length}
+              </span>
+            )}
+          </button>
+
+          <button 
+            type="button"
+            className={`tab-pill-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => navigate('/p2h/history')}
+          >
+            <List size={14} />
+            <span>Riwayat P2H</span>
+          </button>
         </div>
-
-        {isMobile && (
-          <div style={{
-            display: 'flex',
-            background: 'rgba(22, 25, 29, 0.95)',
-            padding: '0.3rem',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            gap: '0.3rem',
-            marginTop: '1rem',
-            overflowX: 'auto'
-          }} className="hide-scrollbar">
-            <button 
-              onClick={() => navigate('/p2h/create')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'create' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'create' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Input P2H
-            </button>
-            <button 
-              onClick={() => navigate('/p2h/pending')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'pending' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'pending' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
-              }}
-            >
-              Pending {pendingReports.length > 0 && <span style={{ background: activeTab === 'pending' ? 'rgba(0,0,0,0.2)' : 'rgba(255,193,7,0.2)', padding: '0.1rem 0.35rem', borderRadius: '10px', fontSize: '0.65rem' }}>{pendingReports.length}</span>}
-            </button>
-            <button 
-              onClick={() => navigate('/p2h/history')} 
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', cursor: 'pointer',
-                background: activeTab === 'history' ? 'var(--color-yellow-primary)' : 'transparent',
-                color: activeTab === 'history' ? 'var(--color-bg-main)' : 'var(--color-silver)',
-                border: 'none', transition: 'all 0.2s', minWidth: '90px'
-              }}
-            >
-              Riwayat
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── Tab Input P2H ── */}
